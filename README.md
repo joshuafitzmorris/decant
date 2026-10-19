@@ -10,7 +10,7 @@
 
 ![Three photos converted to WebP in Decant's dark theme](docs/convert-dark.png)
 
-Decant converts images, audio, video, documents and spreadsheets on your own machine. Files are read from your disk, converted inside the tab with WebCodecs and WebAssembly, and saved straight back. There's no server, so there's no queue, no upload wait, no account, no ads and no file size limit beyond what your device can hold. Once the page has loaded, it keeps working offline.
+Decant converts images, audio, video, documents and spreadsheets on your own machine. Files are read from your disk, converted inside the tab with WebCodecs and WebAssembly, and saved straight back. There's no server, so there's no queue, no upload wait, no account, no ads and no file size limit beyond what your device can hold. It works offline too: the page, and each converter once you've used it, stay in your browser's cache.
 
 ## What it converts
 

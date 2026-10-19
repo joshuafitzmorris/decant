@@ -387,6 +387,15 @@ async function run(job: Job, engineId: EngineId) {
 function describeError(error: unknown): string {
   if (error instanceof ConversionError && error.code !== 'internal' && error.code !== 'crash') return error.message;
   const detail = error instanceof Error ? error.message : String(error);
+  // A converter's code is fetched on first use; that fails offline or after a new version is deployed.
+  const crashed = error instanceof ConversionError && error.code === 'crash';
+  const missingCode =
+    /dynamically imported module|Importing a module script failed|error loading dynamically|Failed to fetch/i;
+  if ((crashed && !navigator.onLine) || missingCode.test(detail)) {
+    return navigator.onLine
+      ? "This converter couldn't be loaded. Reload the page and try again."
+      : "You're offline, and this converter hasn't been used on this device yet. Connect once to download it.";
+  }
   if (/memory|allocation|out of bounds|RangeError/i.test(detail)) {
     return 'This file is too large for the browser to convert in one go.';
   }

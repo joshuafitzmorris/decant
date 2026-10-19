@@ -35,7 +35,8 @@ export function Footer() {
             once and then cached.
           </p>
           <p>
-            Once the page has loaded, Decant keeps working offline. It is open source:{' '}
+            Decant works offline too: the page, and each converter once you've used it, stay in your browser's cache. It
+            is open source:{' '}
             <a
               href={REPO_URL}
               className="text-ink underline decoration-rule-strong underline-offset-4 hover:decoration-ink"
