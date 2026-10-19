@@ -2,7 +2,7 @@ import { defineConfig, devices } from '@playwright/test';
 import { BASE_PATH } from './scripts/site.ts';
 
 const PORT = 4173;
-// Set E2E_BASE_URL (e.g. https://joshuafitzmorris.github.io/decant/) to test a deployed site instead of a local build.
+// Set E2E_BASE_URL (e.g. https://decant.dev/) to test a deployed site instead of a local build.
 const deployed = process.env.E2E_BASE_URL;
 
 export default defineConfig({

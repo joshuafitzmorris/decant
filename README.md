@@ -4,7 +4,7 @@
 
 **Convert files in your browser. Nothing is uploaded.**
 
-[joshuafitzmorris.github.io/decant](https://joshuafitzmorris.github.io/decant/)
+[decant.dev](https://decant.dev/)
 
 </div>
 
@@ -88,7 +88,7 @@ npm run test:e2e   # real conversions in Chrome and WebKit (Playwright)
 npm run build      # production build in dist/
 
 # Run the browser suite against the deployed site instead of a local build
-E2E_BASE_URL=https://joshuafitzmorris.github.io/decant/ npm run test:e2e
+E2E_BASE_URL=https://decant.dev/ npm run test:e2e
 ```
 
 The browser suite runs in Google Chrome rather than bundled Chromium, because WebCodecs relies on Chrome's H.264 and AAC support, and in WebKit, Safari's engine (install Playwright's build once with `npx playwright install webkit`). Every push to `main` runs lint, type checks and both test suites, with WebKit on macOS so it uses the same media frameworks as Safari, then deploys to GitHub Pages.

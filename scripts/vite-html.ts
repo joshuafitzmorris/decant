@@ -61,7 +61,7 @@ export function htmlExtras({ siteUrl }: { siteUrl: string }): Plugin {
 
 /**
  * Writes a copy of index.html for each popular conversion (/heic-to-jpg/) with
- * its own title and description, plus a sitemap and a 404 page that boots the app.
+ * its own title and description, plus a sitemap, robots.txt and a 404 page that boots the app.
  */
 export function landingPages(options: {
   siteUrl: string;
@@ -98,6 +98,10 @@ export function landingPages(options: {
         .map((url) => `  <url><loc>${url}</loc></url>`)
         .join('\n')}\n</urlset>\n`;
       writeFileSync(resolve(outDir, 'sitemap.xml'), sitemap);
+      writeFileSync(
+        resolve(outDir, 'robots.txt'),
+        `User-agent: *\nAllow: /\n\nSitemap: ${options.siteUrl}sitemap.xml\n`,
+      );
     },
   };
 }

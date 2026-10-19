@@ -3,7 +3,7 @@
   "private": true,
   "version": "1.0.0",
   "description": "Convert files in your browser. Nothing is uploaded.",
-  "homepage": "https://joshuafitzmorris.github.io/decant/",
+  "homepage": "https://decant.dev/",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/joshuafitzmorris/decant.git"
