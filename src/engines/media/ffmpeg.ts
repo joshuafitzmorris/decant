@@ -128,6 +128,8 @@ async function runFfmpeg({ file, to, options, signal, onProgress }: Omit<Convert
     return new Blob([data as BlobPart], { type: OUTPUT_SPECS[to]?.mime ?? getFormat(to).mime });
   } catch (error) {
     if (signal.aborted) throw abortError();
+    // A WebAssembly crash leaves ffmpeg's memory corrupt, so the next job needs a fresh instance.
+    if (!(error instanceof ConversionError)) reset();
     throw error;
   } finally {
     signal.removeEventListener('abort', abort);
@@ -186,6 +188,13 @@ const MP4_VIDEO = (options: Options) => [
   '+faststart',
 ];
 
+/**
+ * libopus in this ffmpeg.wasm build overruns its stack on stereo audio from complexity 5 up, where
+ * its pitch pre-filter switches on, and crashes. Complexity 4 runs cleanly and measures within
+ * about 2 dB of the default (10) at every bitrate offered.
+ */
+const OPUS_COMPLEXITY = ['-compression_level', '4'];
+
 function bitrate(options: Options, fallback: number): string {
   const kbps = Number(options.bitrate);
   return `${kbps > 0 ? kbps : fallback}k`;
@@ -214,7 +223,7 @@ function outputArgs(to: string, options: Options): string[] {
         '-b:v',
         '3M',
         ...scaleFilter(options),
-        ...audioOrMute(options, ['-c:a', 'libopus', '-b:a', '128k']),
+        ...audioOrMute(options, ['-c:a', 'libopus', '-b:a', '128k', ...OPUS_COMPLEXITY]),
       ];
     case 'mkv':
       return ['-map', '0', '-c', 'copy'];
@@ -240,7 +249,19 @@ function outputArgs(to: string, options: Options): string[] {
       return ['-vn', '-map', '0:a:0', '-c:a', 'aac', '-b:a', bitrate(options, 192), ...mono, '-f', 'adts'];
     case 'ogg':
     case 'opus':
-      return ['-vn', '-map', '0:a:0', '-c:a', 'libopus', '-b:a', bitrate(options, 128), ...mono, '-f', 'ogg'];
+      return [
+        '-vn',
+        '-map',
+        '0:a:0',
+        '-c:a',
+        'libopus',
+        '-b:a',
+        bitrate(options, 128),
+        ...OPUS_COMPLEXITY,
+        ...mono,
+        '-f',
+        'ogg',
+      ];
     default:
       throw new ConversionError(`Decant can't write ${to.toUpperCase()} files yet.`);
   }

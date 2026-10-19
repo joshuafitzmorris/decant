@@ -46,6 +46,7 @@ const BINARY: [source: string, target: FormatId][] = [
   ['sample.avi', 'mp4'],
   ['sample.wma', 'mp3'],
   ['sample.aiff', 'wav'],
+  ['sample.aiff', 'opus'],
   // Spreadsheets
   ['sample.csv', 'xlsx'],
   ['sample.json', 'ods'],
