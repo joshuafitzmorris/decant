@@ -81,6 +81,8 @@ test('works offline after the first visit', async ({ page, context }) => {
   await page.getByRole('button', { name: 'Convert to JPG' }).click();
   await expect(page.getByRole('button', { name: 'Save sample.jpg' }).first()).toBeVisible();
 
+  // The unsaved result makes the page ask before reloading; accept that prompt.
+  page.on('dialog', (dialog) => dialog.accept());
   await context.setOffline(true);
   await page.reload();
   await page.locator('input[type=file]').setInputFiles(fixture('sample.bmp'));
@@ -112,4 +114,19 @@ test('a landing page opens with its conversion and defaults to it', async ({ pag
   await expect(page.getByRole('button', { name: 'Choose PDF files' })).toBeVisible();
   await page.locator('input[type=file]').setInputFiles(fixture('sample.pdf'));
   await expect(page.getByRole('button', { name: 'JPG', exact: true })).toHaveAttribute('aria-pressed', 'true');
+});
+
+test('leaving with unsaved results asks first; saving them stops the prompt', async ({ page }) => {
+  await page.goto('./');
+  await page.locator('input[type=file]').setInputFiles(fixture('sample.png'));
+  await page.getByRole('button', { name: 'Convert to JPG' }).click();
+  await expect(page.getByRole('button', { name: 'Save sample.jpg' }).first()).toBeVisible();
+
+  let prompted = false;
+  page.once('dialog', async (dialog) => {
+    prompted = dialog.type() === 'beforeunload';
+    await dialog.dismiss();
+  });
+  await page.close({ runBeforeUnload: true });
+  await expect.poll(() => prompted).toBe(true);
 });

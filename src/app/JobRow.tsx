@@ -1,7 +1,7 @@
 import { memo, useEffect, useState } from 'react';
 import { getFormat } from '../core/formats';
 import { zipFiles } from '../core/zip';
-import { cancelJob, type Job, removeJob, retryJob } from '../state/jobs';
+import { cancelJob, type Job, markSaved, removeJob, retryJob } from '../state/jobs';
 import { describeSizeChange, formatBytes, formatDuration, plural } from './format';
 import { CloseIcon, DownloadIcon, RetryIcon } from './icons';
 import { saveBlob } from './save';
@@ -160,13 +160,17 @@ function RowActions({ job }: { job: Job }) {
   const download = async () => {
     if (job.outputs.length === 1) {
       const [output] = job.outputs;
-      if (output) saveBlob(output.blob, output.name);
+      if (output) {
+        saveBlob(output.blob, output.name);
+        markSaved([output]);
+      }
       return;
     }
     setZipping(true);
     try {
       const zip = await zipFiles(job.outputs);
       saveBlob(zip, `${job.file.name.replace(/\.[^.]+$/, '')}.zip`);
+      markSaved(job.outputs);
     } finally {
       setZipping(false);
     }

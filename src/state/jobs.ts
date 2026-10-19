@@ -14,6 +14,8 @@ export interface Output {
   name: string;
   blob: Blob;
   url: string;
+  /** Set once the person has saved this result, so leaving the page doesn't need a warning. */
+  saved?: boolean;
 }
 
 export interface Job {
@@ -230,6 +232,25 @@ export function convertGroup(category: Category) {
 
 export function convertAll() {
   for (const category of Object.keys(state.groups) as Category[]) convertGroup(category);
+}
+
+export function markSaved(outputs: Output[]) {
+  const urls = new Set(outputs.map((o) => o.url));
+  setState((s) => ({
+    ...s,
+    jobs: s.jobs.map((job) =>
+      job.outputs.some((o) => urls.has(o.url))
+        ? { ...job, outputs: job.outputs.map((o) => (urls.has(o.url) ? { ...o, saved: true } : o)) }
+        : job,
+    ),
+  }));
+}
+
+/** True while a conversion is running or a result hasn't been saved yet. */
+export function hasUnsavedWork(s: State): boolean {
+  return s.jobs.some(
+    (job) => job.status === 'working' || job.status === 'queued' || job.outputs.some((output) => !output.saved),
+  );
 }
 
 export function retryJob(id: string) {

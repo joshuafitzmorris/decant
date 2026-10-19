@@ -9,6 +9,7 @@ import {
   type Group,
   isConvertible,
   type Job,
+  markSaved,
   pendingJobs,
   setOption,
   setTarget,
@@ -55,6 +56,7 @@ export function GroupPanel({ group, jobs, prominent }: GroupPanelProps) {
   const downloadAll = async () => {
     if (outputs.length === 1 && outputs[0]) {
       saveBlob(outputs[0].blob, outputs[0].name);
+      markSaved(outputs);
       return;
     }
     setZipping(true);
@@ -65,6 +67,7 @@ export function GroupPanel({ group, jobs, prominent }: GroupPanelProps) {
           ? `${baseName(finished[0].file.name)}.zip`
           : `${CATEGORY_NAMES[group.category]} as ${target.label}.zip`;
       saveBlob(await zipFiles(outputs), name);
+      markSaved(outputs);
     } finally {
       setZipping(false);
     }
@@ -81,6 +84,7 @@ export function GroupPanel({ group, jobs, prominent }: GroupPanelProps) {
         await mergePdfs(outputs.map((o) => o.blob)),
         `${first ? baseName(first.file.name) : 'images'}-combined.pdf`,
       );
+      markSaved(outputs);
     } finally {
       setMerging(false);
     }

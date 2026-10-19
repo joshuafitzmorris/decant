@@ -8,7 +8,9 @@ import {
   categoryOf,
   clearAll,
   convertAll,
+  hasUnsavedWork,
   type Job,
+  markSaved,
   pendingJobs,
   preferTarget,
   removeJob,
@@ -67,9 +69,21 @@ export function App() {
 
   const empty = jobs.length === 0;
 
+  // Ask before leaving while something is converting or a result hasn't been saved.
+  const unsaved = useAppState(hasUnsavedWork);
+  useEffect(() => {
+    if (!unsaved) return;
+    const warn = (event: BeforeUnloadEvent) => {
+      event.preventDefault();
+      event.returnValue = '';
+    };
+    window.addEventListener('beforeunload', warn);
+    return () => window.removeEventListener('beforeunload', warn);
+  }, [unsaved]);
+
   return (
     <div className="mx-auto w-full max-w-[72rem] px-[clamp(1.25rem,5vw,4rem)]">
-      <Header onHome={empty ? undefined : clearAll} />
+      <Header />
 
       <main>
         {empty ? (
@@ -150,6 +164,7 @@ function SessionBar({ jobs, groupCount, onAdd }: { jobs: Job[]; groupCount: numb
             setZipping(true);
             try {
               saveBlob(await zipFiles(outputs), 'decant.zip');
+              markSaved(outputs);
             } finally {
               setZipping(false);
             }
