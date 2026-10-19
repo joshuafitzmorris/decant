@@ -1,4 +1,4 @@
-import type { SVGProps } from 'react';
+import { type SVGProps, useId } from 'react';
 
 const base = {
   width: 16,
@@ -42,23 +42,22 @@ export const ChevronIcon = (props: SVGProps<SVGSVGElement>) => (
 );
 
 /** Decant's mark: a vessel, half full. */
-export const Mark = (props: SVGProps<SVGSVGElement>) => (
-  <svg width="22" height="22" viewBox="0 0 32 32" aria-hidden="true" {...props}>
-    <defs>
-      <clipPath id="mark-vessel">
-        <path d="M11 3h10v8.2c4.2 1.9 7 6 7 10.8C28 28.6 22.6 31 16 31S4 28.6 4 22c0-4.8 2.8-8.9 7-10.8z" />
-      </clipPath>
-    </defs>
-    <g clipPath="url(#mark-vessel)">
-      <rect width="32" height="32" fill="var(--ink)" opacity="0.14" />
-      <path d="M0 19.5c4-1.6 8-1.6 12 0s8 1.6 12 0 6-1.2 8-.6V32H0z" fill="var(--ink)" />
-    </g>
-    <path
-      d="M11 3h10v8.2c4.2 1.9 7 6 7 10.8C28 28.6 22.6 31 16 31S4 28.6 4 22c0-4.8 2.8-8.9 7-10.8z"
-      fill="none"
-      stroke="var(--ink)"
-      strokeWidth="2"
-      strokeLinejoin="round"
-    />
-  </svg>
-);
+export function Mark(props: SVGProps<SVGSVGElement>) {
+  const clip = useId();
+  return (
+    <svg width="22" height="22" viewBox="0 0 32 32" aria-hidden="true" {...props}>
+      <defs>
+        <clipPath id={clip}>
+          <path d={VESSEL} />
+        </clipPath>
+      </defs>
+      <g clipPath={`url(#${clip})`}>
+        <rect width="32" height="32" fill="var(--ink)" opacity="0.14" />
+        <path d="M0 19.5c4-1.6 8-1.6 12 0s8 1.6 12 0 6-1.2 8-.6V32H0z" fill="var(--ink)" />
+      </g>
+      <path d={VESSEL} fill="none" stroke="var(--ink)" strokeWidth="2" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+const VESSEL = 'M11 3h10v8.2c4.2 1.9 7 6 7 10.8C28 28.6 22.6 31 16 31S4 28.6 4 22c0-4.8 2.8-8.9 7-10.8z';

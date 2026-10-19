@@ -21,7 +21,7 @@ import { plural } from './format';
 import { GroupPanel } from './GroupPanel';
 import { Header } from './Header';
 import { Intro } from './Intro';
-import { DownloadIcon, PlusIcon } from './icons';
+import { DownloadIcon, Mark, PlusIcon } from './icons';
 import { JobRow } from './JobRow';
 import { saveBlob } from './save';
 import { useFileIntake } from './useFileIntake';
@@ -195,9 +195,12 @@ function SessionBar({ jobs, groupCount, onAdd }: { jobs: Job[]; groupCount: numb
 function DropOverlay() {
   return (
     <div className="pointer-events-none fixed inset-0 z-50 grid place-items-center bg-paper/85 backdrop-blur-sm">
-      <div className="rounded-3xl border-2 border-dashed border-ink-3 px-12 py-10 text-center">
-        <p className="text-[clamp(1.75rem,4vw,2.75rem)] font-[760] [font-variation-settings:'wdth'_80]">Drop to add</p>
-        <p className="mt-1 text-ink-2">Files and folders both work</p>
+      <div className="flex flex-col items-center text-center">
+        <Mark width={88} height={88} />
+        <p className="mt-6 text-[clamp(2rem,5vw,3.25rem)] leading-none font-[780] tracking-[-0.03em] [font-variation-settings:'wdth'_78]">
+          Drop to add
+        </p>
+        <p className="mt-3 text-ink-2">Files and whole folders both work</p>
       </div>
     </div>
   );
