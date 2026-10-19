@@ -1,7 +1,7 @@
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { App } from './app/App';
-import { addFiles } from './state/jobs';
+import { addFiles, getState, subscribe } from './state/jobs';
 import './styles/index.css';
 
 const root = document.getElementById('root');
@@ -14,8 +14,25 @@ if (root) {
 }
 
 if (import.meta.env.PROD) {
-  // Offline support. The service worker only caches; it never sees file contents.
-  void import('virtual:pwa-register').then(({ registerSW }) => registerSW({ immediate: true }));
+  // Offline support. The service worker only caches the app; it never sees your files.
+  // A new version is applied straight away if nothing has been added yet, otherwise as
+  // soon as the page is empty again, so an update can never interrupt a conversion.
+  void import('virtual:pwa-register').then(({ registerSW }) => {
+    const update = registerSW({
+      immediate: true,
+      onNeedRefresh() {
+        const applyWhenIdle = () => {
+          if (getState().jobs.length > 0) return false;
+          void update(true);
+          return true;
+        };
+        if (applyWhenIdle()) return;
+        const unsubscribe = subscribe(() => {
+          if (applyWhenIdle()) unsubscribe();
+        });
+      },
+    });
+  });
 } else {
   void import('./dev/harness');
 }

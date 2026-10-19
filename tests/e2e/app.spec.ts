@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs';
 import { expect, test } from '@playwright/test';
 import { unzipSync } from 'fflate';
 import { fixture, saveResult } from './helpers';
@@ -85,4 +86,30 @@ test('works offline after the first visit', async ({ page, context }) => {
   await page.locator('input[type=file]').setInputFiles(fixture('sample.bmp'));
   await page.getByRole('button', { name: 'Convert to PNG' }).click();
   await expect(page.getByRole('button', { name: 'Save sample.png' }).first()).toBeVisible();
+});
+
+test('several images can be saved as one PDF, in the order they were added', async ({ page }) => {
+  await page.goto('./');
+  await page
+    .locator('input[type=file]')
+    .setInputFiles([fixture('sample.png'), fixture('sample.heic'), fixture('sample.svg')]);
+  await page.getByRole('button', { name: 'PDF', exact: true }).click();
+  await page.getByRole('button', { name: 'Convert 3 files to PDF' }).click();
+  await expect(page.getByRole('button', { name: 'Save as one PDF' })).toBeVisible();
+  const [download] = await Promise.all([
+    page.waitForEvent('download'),
+    page.getByRole('button', { name: 'Save as one PDF' }).click(),
+  ]);
+  expect(download.suggestedFilename()).toBe('sample-combined.pdf');
+  const { PDFDocument } = await import('pdf-lib');
+  const pdf = await PDFDocument.load(readFileSync(await download.path()));
+  expect(pdf.getPageCount()).toBe(3);
+});
+
+test('a landing page opens with its conversion and defaults to it', async ({ page }) => {
+  await page.goto('./pdf-to-jpg/');
+  await expect(page).toHaveTitle('Convert PDF to JPG without uploading | Decant');
+  await expect(page.getByRole('button', { name: 'Choose PDF files' })).toBeVisible();
+  await page.locator('input[type=file]').setInputFiles(fixture('sample.pdf'));
+  await expect(page.getByRole('button', { name: 'JPG', exact: true })).toHaveAttribute('aria-pressed', 'true');
 });

@@ -1,4 +1,5 @@
-import { CATEGORY_NAMES, type Category, FORMATS, type FormatId } from '../core/formats';
+import { CATEGORY_NAMES, type Category, FORMATS, type FormatId, getFormat } from '../core/formats';
+import { LANDING_PAIRS, landingSlug } from '../core/landing';
 import { readableFormats } from '../core/routes';
 import { REPO_URL } from './Header';
 
@@ -75,6 +76,19 @@ export function Footer() {
               </div>
             ))}
           </dl>
+          <h2 className="mt-10 text-[1.35rem] font-[700] [font-variation-settings:'wdth'_90]">Common conversions</h2>
+          <ul className="mt-4 flex flex-wrap gap-x-4 gap-y-1.5 text-ink-2">
+            {LANDING_PAIRS.map(([from, to]) => (
+              <li key={`${from}-${to}`}>
+                <a
+                  href={`${import.meta.env.BASE_URL}${landingSlug(from, to)}/`}
+                  className="underline decoration-rule underline-offset-4 hover:text-ink hover:decoration-ink-3"
+                >
+                  {getFormat(from).label} to {getFormat(to).label}
+                </a>
+              </li>
+            ))}
+          </ul>
         </div>
       </div>
     </footer>

@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { type Category, getFormat } from '../core/formats';
+import { landingCopy, pairFromPath } from '../core/landing';
 import { readableFormats } from '../core/routes';
 import { zipFiles } from '../core/zip';
 import {
@@ -9,6 +10,7 @@ import {
   convertAll,
   type Job,
   pendingJobs,
+  preferTarget,
   removeJob,
   useAppState,
 } from '../state/jobs';
@@ -21,6 +23,14 @@ import { DownloadIcon, PlusIcon } from './icons';
 import { JobRow } from './JobRow';
 import { saveBlob } from './save';
 import { useFileIntake } from './useFileIntake';
+
+/** On a landing page such as /decant/heic-to-jpg/, open with that pair and default to it. */
+const LANDING = pairFromPath(window.location.pathname, import.meta.env.BASE_URL);
+if (LANDING) {
+  preferTarget(LANDING.from, LANDING.to);
+  // The offline copy of the page is shared by every URL, so set the title here too.
+  document.title = landingCopy(LANDING.from, LANDING.to).title;
+}
 
 const ACCEPT = readableFormats()
   .flatMap((id) => getFormat(id).exts.map((ext) => `.${ext}`))
@@ -63,7 +73,7 @@ export function App() {
 
       <main>
         {empty ? (
-          <Intro onChoose={choose} />
+          <Intro onChoose={choose} pair={LANDING} />
         ) : (
           <>
             {sections.order.map((category) => {

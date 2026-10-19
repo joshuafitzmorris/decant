@@ -1,3 +1,5 @@
+import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 import type { Plugin } from 'vite';
 
 /**
@@ -49,4 +51,51 @@ export function htmlExtras(): Plugin {
       },
     },
   };
+}
+
+/**
+ * Writes a copy of index.html for each popular conversion (/heic-to-jpg/) with
+ * its own title and description, plus a sitemap and a 404 page that boots the app.
+ */
+export function landingPages(options: {
+  siteUrl: string;
+  pairs: [string, string][];
+  copy: (from: string, to: string) => { title: string; description: string };
+}): Plugin {
+  let outDir = 'dist';
+  return {
+    name: 'decant:landing-pages',
+    apply: 'build',
+    configResolved(config) {
+      outDir = resolve(config.root, config.build.outDir);
+    },
+    writeBundle() {
+      const index = readFileSync(resolve(outDir, 'index.html'), 'utf8');
+      const urls = [options.siteUrl];
+      for (const [from, to] of options.pairs) {
+        const slug = `${from}-to-${to}`;
+        const url = `${options.siteUrl}${slug}/`;
+        const { title, description } = options.copy(from, to);
+        const html = index
+          .replace(/<title>[^<]*<\/title>/, `<title>${escapeHtml(title)}</title>`)
+          .replace(/(<meta\s+name="description"\s+content=")[^"]*(")/, `$1${escapeHtml(description)}$2`)
+          .replace(/(<meta property="og:title" content=")[^"]*(")/, `$1${escapeHtml(title)}$2`)
+          .replace(/(<meta\s+property="og:description"\s+content=")[^"]*(")/, `$1${escapeHtml(description)}$2`)
+          .replace(/(<meta property="og:url" content=")[^"]*(")/, `$1${url}$2`)
+          .replace(/(<link rel="canonical" href=")[^"]*(")/, `$1${url}$2`);
+        mkdirSync(resolve(outDir, slug), { recursive: true });
+        writeFileSync(resolve(outDir, slug, 'index.html'), html);
+        urls.push(url);
+      }
+      writeFileSync(resolve(outDir, '404.html'), index);
+      const sitemap = `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${urls
+        .map((url) => `  <url><loc>${url}</loc></url>`)
+        .join('\n')}\n</urlset>\n`;
+      writeFileSync(resolve(outDir, 'sitemap.xml'), sitemap);
+    },
+  };
+}
+
+function escapeHtml(value: string): string {
+  return value.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 }

@@ -205,3 +205,16 @@ export async function imagesToPdf(
   const bytes = await doc.save();
   return new Blob([bytes as BlobPart], { type: 'application/pdf' });
 }
+
+/** Joins several PDFs into one, in order. Used to combine images converted one by one. */
+export async function mergePdfs(blobs: Blob[]): Promise<Blob> {
+  const { PDFDocument } = await import('pdf-lib');
+  const merged = await PDFDocument.create();
+  merged.setProducer('Decant');
+  merged.setCreator('Decant');
+  for (const blob of blobs) {
+    const doc = await PDFDocument.load(await blob.arrayBuffer());
+    for (const page of await merged.copyPages(doc, doc.getPageIndices())) merged.addPage(page);
+  }
+  return new Blob([(await merged.save()) as BlobPart], { type: 'application/pdf' });
+}

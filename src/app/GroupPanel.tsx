@@ -32,6 +32,7 @@ export function GroupPanel({ group, jobs, prominent }: GroupPanelProps) {
   const targets = useMemo(() => groupTargets(group.category, sources), [group.category, sources]);
   const defs = useMemo(() => groupOptionDefs(sources, group.target), [sources, group.target]);
   const [zipping, setZipping] = useState(false);
+  const [merging, setMerging] = useState(false);
 
   const convertible = jobs.filter((j) => isConvertible(j, group));
   const active = convertible.filter((j) => j.status === 'working' || j.status === 'queued');
@@ -66,6 +67,22 @@ export function GroupPanel({ group, jobs, prominent }: GroupPanelProps) {
       saveBlob(await zipFiles(outputs), name);
     } finally {
       setZipping(false);
+    }
+  };
+
+  // Several images converted to PDF can also be saved as one document, in the order they were added.
+  const canMerge = group.target === 'pdf' && outputs.length > 1;
+  const saveMerged = async () => {
+    setMerging(true);
+    try {
+      const { mergePdfs } = await import('../engines/pdf');
+      const first = finished[0];
+      saveBlob(
+        await mergePdfs(outputs.map((o) => o.blob)),
+        `${first ? baseName(first.file.name) : 'images'}-combined.pdf`,
+      );
+    } finally {
+      setMerging(false);
     }
   };
 
@@ -140,12 +157,24 @@ export function GroupPanel({ group, jobs, prominent }: GroupPanelProps) {
             </button>
           ) : null}
 
+          {canMerge && (
+            <button
+              type="button"
+              onClick={saveMerged}
+              disabled={merging}
+              className={pending.length === 0 && active.length === 0 ? primaryButton : secondaryButton}
+            >
+              <DownloadIcon />
+              {merging ? 'Combining…' : 'Save as one PDF'}
+            </button>
+          )}
+
           {outputs.length > 0 && (
             <button
               type="button"
               onClick={downloadAll}
               disabled={zipping}
-              className={pending.length === 0 && active.length === 0 ? primaryButton : secondaryButton}
+              className={pending.length === 0 && active.length === 0 && !canMerge ? primaryButton : secondaryButton}
             >
               <DownloadIcon />
               {zipping

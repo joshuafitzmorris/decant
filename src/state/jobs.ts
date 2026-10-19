@@ -62,7 +62,7 @@ export function getState(): State {
   return state;
 }
 
-function subscribe(listener: () => void) {
+export function subscribe(listener: () => void) {
   listeners.add(listener);
   return () => {
     listeners.delete(listener);
@@ -105,6 +105,13 @@ export function isConvertible(job: Job, group: Group | undefined): boolean {
 
 let idCounter = 0;
 
+/** Targets to default to per kind of file, e.g. from a /heic-to-jpg/ landing page. */
+const preferredTargets: Partial<Record<Category, FormatId>> = {};
+
+export function preferTarget(from: FormatId, to: FormatId) {
+  preferredTargets[getFormat(from).category] = to;
+}
+
 export function addFiles(files: File[]) {
   const fresh: Job[] = files.map((file) => ({
     id: `job-${++idCounter}`,
@@ -136,8 +143,10 @@ export function addFiles(files: File[]) {
             const options = { ...groupDefaultOptions(sources, existing.target), ...existing.options };
             return { jobs, groups: { ...s.groups, [category]: { ...existing, options } } };
           }
-          // Until the person chooses, default to the most popular target for the whole mix.
-          const target = groupTargets(category, sources)[0] as FormatId;
+          // Until the person chooses, default to the preferred or most popular target for the whole mix.
+          const available = groupTargets(category, sources);
+          const preferred = preferredTargets[category];
+          const target = (preferred && available.includes(preferred) ? preferred : available[0]) as FormatId;
           const options =
             existing && existing.target === target
               ? { ...groupDefaultOptions(sources, target), ...existing.options }
