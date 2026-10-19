@@ -1,14 +1,16 @@
-import { ConversionError, type ConvertedFile, type ConvertRequest } from '../types';
+import { readText } from '../../core/text';
+import { abortError, ConversionError, type ConvertedFile, type ConvertRequest } from '../types';
 import { htmlDocument, htmlToText } from './html';
 
 /**
  * Text documents: Word, Markdown, HTML and plain text. These run on the page
  * because Turndown and the HTML-to-text pass need a real DOM parser.
  */
-export async function convert({ file, from, to, onProgress }: ConvertRequest): Promise<ConvertedFile[]> {
+export async function convert({ file, from, to, signal, onProgress }: ConvertRequest): Promise<ConvertedFile[]> {
   onProgress(null, 'Converting');
   const title = file.name.replace(/\.[^.]+$/, '');
   const html = await toHtml(file, from, title);
+  if (signal.aborted) throw abortError();
 
   switch (to) {
     case 'html':
@@ -16,7 +18,7 @@ export async function convert({ file, from, to, onProgress }: ConvertRequest): P
     case 'md':
       return [text(await htmlToMarkdown(html), 'text/markdown')];
     case 'txt':
-      return [text(from === 'txt' ? await file.text() : htmlToText(html), 'text/plain')];
+      return [text(from === 'txt' ? await readText(file) : htmlToText(html), 'text/plain')];
     default:
       throw new ConversionError(`Decant can't write ${to.toUpperCase()} from this file yet.`);
   }
@@ -36,12 +38,12 @@ async function toHtml(file: File, from: string, title: string): Promise<string> 
     }
     case 'md': {
       const { marked } = await import('marked');
-      return marked.parse(await file.text(), { gfm: true, async: false });
+      return marked.parse(await readText(file), { gfm: true, async: false });
     }
     case 'html':
-      return file.text();
+      return readText(file);
     case 'txt': {
-      const paragraphs = (await file.text()).replace(/\r\n?/g, '\n').split(/\n{2,}/);
+      const paragraphs = (await readText(file)).replace(/\r\n?/g, '\n').split(/\n{2,}/);
       return paragraphs
         .filter((p) => p.trim())
         .map((p) => `<p>${escapeHtml(p).replace(/\n/g, '<br>')}</p>`)

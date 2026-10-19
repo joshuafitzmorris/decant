@@ -1,6 +1,7 @@
+import { readFileSync } from 'node:fs';
 import { expect, test } from '@playwright/test';
 import type { FormatId } from '../../src/core/formats';
-import { convert, expectFormat, saveResult, text } from './helpers';
+import { convert, expectFormat, fixture, saveResult, text } from './helpers';
 
 /**
  * One real conversion per route family, driven through the UI in Chrome.
@@ -147,4 +148,30 @@ test('Trimming a video to a GIF uses only the chosen range', async ({ page }) =>
   // 0.5 s at 10 fps is 5 frames; each frame starts with an image descriptor (0x2C) after a graphic control block.
   const frames = Buffer.from(file.bytes).toString('latin1').split('\x21\xf9\x04').length - 1;
   expect(frames).toBe(5);
+});
+
+test('a portrait phone photo stored sideways becomes an upright PDF page', async ({ page }) => {
+  // sample.jpg is 96×64; add the EXIF tag phones use to say "rotate 90° clockwise to display".
+  const jpeg = readFileSync(fixture('sample.jpg'));
+  const tiff = Buffer.from([0x49, 0x49, 42, 0, 8, 0, 0, 0, 1, 0, 0x12, 0x01, 3, 0, 1, 0, 0, 0, 6, 0, 0, 0, 0, 0, 0, 0]);
+  const app1 = Buffer.concat([Buffer.from('Exif\0\0', 'latin1'), tiff]);
+  const segment = Buffer.concat([Buffer.from([0xff, 0xe1, (app1.length + 2) >> 8, (app1.length + 2) & 0xff]), app1]);
+  const rotated = Buffer.concat([jpeg.subarray(0, 2), segment, jpeg.subarray(2)]);
+
+  await convert(page, [{ name: 'portrait.jpg', mimeType: 'image/jpeg', buffer: rotated }], 'pdf');
+  const file = await saveResult(page);
+  const { PDFDocument } = await import('pdf-lib');
+  const pdf = await PDFDocument.load(file.bytes);
+  expect(pdf.getPage(0).getSize()).toEqual({ width: 64, height: 96 });
+});
+
+test('UTF-16 and Windows-1252 CSVs keep their accented characters', async ({ page }) => {
+  const csv = 'city,café\nMontréal,oui\n';
+  const utf16 = Buffer.concat([Buffer.from([0xff, 0xfe]), Buffer.from(csv, 'utf16le')]);
+  await convert(page, [{ name: 'utf16.csv', mimeType: 'text/csv', buffer: utf16 }], 'json');
+  expect(JSON.parse(text((await saveResult(page)).bytes))).toEqual([{ city: 'Montréal', café: 'oui' }]);
+
+  const latin1 = Buffer.from(csv, 'latin1');
+  await convert(page, [{ name: 'windows.csv', mimeType: 'text/csv', buffer: latin1 }], 'json');
+  expect(JSON.parse(text((await saveResult(page)).bytes))).toEqual([{ city: 'Montréal', café: 'oui' }]);
 });

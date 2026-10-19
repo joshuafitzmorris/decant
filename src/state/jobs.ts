@@ -7,6 +7,7 @@ import type { Options, OptionValue } from '../core/options';
 import { canConvert, type EngineId, engineFor, targetsFor } from '../core/routes';
 import { detectFormat } from '../core/sniff';
 import { ConversionError, isAbortError } from '../engines/types';
+import { removeDiskFile } from '../lib/disk';
 
 export type JobStatus = 'detecting' | 'unsupported' | 'ready' | 'queued' | 'working' | 'done' | 'failed';
 
@@ -16,6 +17,8 @@ export interface Output {
   url: string;
   /** Set once the person has saved this result, so leaving the page doesn't need a warning. */
   saved?: boolean;
+  /** Backing file in the private file system, for very large video outputs. */
+  disk?: string;
 }
 
 export interface Job {
@@ -173,9 +176,13 @@ export function setTarget(category: Category, target: FormatId) {
       ...s.groups,
       [category]: { category, target, chosen: true, options: { ...groupDefaultOptions(sources, target), ...kept } },
     },
-    jobs: markStale(s.jobs, category).map((job) =>
-      categoryOf(job) === category && job.status === 'queued' ? { ...job, target } : job,
-    ),
+    jobs: markStale(s.jobs, category).map((job) => {
+      if (categoryOf(job) !== category || job.status !== 'queued' || !job.from) return job;
+      // Waiting files follow the new target if they can; the rest go back to waiting for the person.
+      return canConvert(job.from, target)
+        ? { ...job, target }
+        : { ...job, status: 'ready' as const, target: undefined };
+    }),
   }));
 }
 
@@ -183,7 +190,8 @@ export function setOption(category: Category, key: string, value: OptionValue) {
   const group = state.groups[category];
   if (!group || group.options[key] === value) return;
   setState((s) => ({
-    groups: { ...s.groups, [category]: { ...group, options: { ...group.options, [key]: value } } },
+    // Adjusting a setting commits to the target, so files added later don't reset it.
+    groups: { ...s.groups, [category]: { ...group, chosen: true, options: { ...group.options, [key]: value } } },
     jobs: markStale(s.jobs, category),
   }));
 }
@@ -300,7 +308,10 @@ function pruneGroups(groups: State['groups'], jobs: Job[]): State['groups'] {
 }
 
 function revokeOutputs(job: Job) {
-  for (const output of job.outputs) URL.revokeObjectURL(output.url);
+  for (const output of job.outputs) {
+    URL.revokeObjectURL(output.url);
+    if (output.disk) void removeDiskFile(output.disk);
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -358,6 +369,7 @@ async function run(job: Job, engineId: EngineId) {
       name: outputName(job.file.name, result.ext ?? ext, result.suffix),
       blob: result.blob,
       url: URL.createObjectURL(result.blob),
+      disk: result.disk,
     }));
     updateJob(job.id, (current) => ({
       status: 'done',
@@ -378,7 +390,8 @@ async function run(job: Job, engineId: EngineId) {
       finishedAt: performance.now(),
     });
   } finally {
-    controllers.delete(job.id);
+    // A stopped run can finish after the same file was queued again; leave the newer run's controller alone.
+    if (controllers.get(job.id) === controller) controllers.delete(job.id);
     running[engineId]--;
     pump();
   }

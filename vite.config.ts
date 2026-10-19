@@ -103,6 +103,7 @@ export default defineConfig(({ command, isPreview }) => ({
       '@joplin/turndown-plugin-gfm',
       '@mediabunny/aac-encoder',
       '@mediabunny/ac3',
+      '@mediabunny/dts',
       '@mediabunny/flac-encoder',
       '@mediabunny/mp3-encoder',
       '@mediabunny/prores',

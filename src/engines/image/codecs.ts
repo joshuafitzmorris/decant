@@ -137,3 +137,45 @@ export function hasTransparency(data: Uint8ClampedArray | Uint8Array): boolean {
   for (let i = 3; i < data.length; i += 4) if ((data[i] ?? 255) < 255) return true;
   return false;
 }
+
+/**
+ * Reads the EXIF orientation (1–8) from a JPEG, or 1 if there is none.
+ * Phones store portrait photos as landscape pixels plus this tag.
+ */
+export function jpegOrientation(bytes: Uint8Array): number {
+  if (bytes[0] !== 0xff || bytes[1] !== 0xd8) return 1;
+  let p = 2;
+  while (p + 4 <= bytes.length && bytes[p] === 0xff) {
+    const marker = bytes[p + 1] ?? 0;
+    const length = ((bytes[p + 2] ?? 0) << 8) | (bytes[p + 3] ?? 0);
+    if (marker === 0xda || marker === 0xd9) break; // start of scan / end of image
+    const isExif =
+      marker === 0xe1 &&
+      bytes[p + 4] === 0x45 && // E
+      bytes[p + 5] === 0x78 && // x
+      bytes[p + 6] === 0x69 && // i
+      bytes[p + 7] === 0x66; // f
+    if (isExif) return exifOrientation(bytes, p + 10, p + 2 + length);
+    p += 2 + length;
+  }
+  return 1;
+}
+
+function exifOrientation(bytes: Uint8Array, tiff: number, end: number): number {
+  const little = bytes[tiff] === 0x49; // "II" little-endian, "MM" big-endian
+  const u16 = (o: number) =>
+    little ? (bytes[o] ?? 0) | ((bytes[o + 1] ?? 0) << 8) : ((bytes[o] ?? 0) << 8) | (bytes[o + 1] ?? 0);
+  const u32 = (o: number) => (little ? u16(o) + u16(o + 2) * 0x10000 : u16(o) * 0x10000 + u16(o + 2));
+  const ifd = tiff + u32(tiff + 4);
+  if (ifd + 2 > end) return 1;
+  const count = u16(ifd);
+  for (let i = 0; i < count; i++) {
+    const entry = ifd + 2 + i * 12;
+    if (entry + 12 > end) break;
+    if (u16(entry) === 0x0112) {
+      const value = u16(entry + 8);
+      return value >= 1 && value <= 8 ? value : 1;
+    }
+  }
+  return 1;
+}

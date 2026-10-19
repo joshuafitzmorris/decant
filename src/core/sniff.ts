@@ -1,4 +1,5 @@
 import { extensionOf, type FormatId, formatFromExtension } from './formats';
+import { decodeText } from './text';
 
 /**
  * Identifies a file by its contents, falling back to its extension.
@@ -41,6 +42,9 @@ export function sniffHead(b: Uint8Array, ext = ''): SniffResult {
   const bytes = (offset: number, ...values: number[]) => values.every((v, i) => b[offset + i] === v);
 
   if (b.length === 0) return null;
+
+  // A byte-order mark means text, whatever follows. (UTF-16's FF FE would otherwise pass for an MP3 frame.)
+  if (bytes(0, 0xef, 0xbb, 0xbf) || bytes(0, 0xff, 0xfe) || bytes(0, 0xfe, 0xff)) return sniffText(b, ext);
 
   // Images
   if (bytes(0, 0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a)) return 'png';
@@ -85,7 +89,10 @@ export function sniffHead(b: Uint8Array, ext = ''): SniffResult {
   if (b[0] === 0xff && ((b[1] ?? 0) & 0xe0) === 0xe0) {
     const layer = ((b[1] ?? 0) >> 1) & 0x03;
     if (layer === 0 && ((b[1] ?? 0) & 0xf0) === 0xf0) return 'aac';
-    if (layer !== 0) return 'mp3';
+    // MP3 is MPEG audio Layer III, with a usable bitrate and sample rate.
+    const bitrate = (b[2] ?? 0) >> 4;
+    const sampleRate = ((b[2] ?? 0) >> 2) & 0x03;
+    if (layer === 1 && bitrate !== 0x0f && sampleRate !== 0x03) return 'mp3';
   }
 
   // Documents and archives
@@ -138,8 +145,9 @@ const TEXT_EXT_FORMATS = new Set([
 function sniffText(b: Uint8Array, ext: string): SniffResult {
   // A known text extension is more specific than anything we can infer here.
   if (TEXT_EXT_FORMATS.has(ext)) return null;
-  if (!looksLikeText(b)) return null;
-  const text = new TextDecoder('utf-8', { fatal: false }).decode(b).replace(/^﻿/, '').trimStart();
+  const utf16 = (b[0] === 0xff && b[1] === 0xfe) || (b[0] === 0xfe && b[1] === 0xff);
+  if (!utf16 && !looksLikeText(b)) return null;
+  const text = decodeText(b).trimStart();
   const lower = text.slice(0, 1024).toLowerCase();
   if (lower.startsWith('<svg') || (lower.startsWith('<?xml') && lower.includes('<svg'))) return 'svg';
   if (lower.startsWith('<!doctype html') || lower.startsWith('<html')) return 'html';

@@ -15,9 +15,11 @@ export function formatBytes(bytes: number): string {
 export function formatDuration(ms: number): string {
   if (ms < 1000) return `${Math.max(1, Math.round(ms))} ms`;
   if (ms < 10_000) return `${(ms / 1000).toFixed(1)} s`;
-  if (ms < 60_000) return `${Math.round(ms / 1000)} s`;
-  const minutes = Math.floor(ms / 60_000);
-  const seconds = Math.round((ms % 60_000) / 1000);
+  // Round once, before splitting, so 119.6 s reads "2 min" rather than "1 min 60 s".
+  const total = Math.round(ms / 1000);
+  if (total < 60) return `${total} s`;
+  const minutes = Math.floor(total / 60);
+  const seconds = total % 60;
   return seconds ? `${minutes} min ${seconds} s` : `${minutes} min`;
 }
 

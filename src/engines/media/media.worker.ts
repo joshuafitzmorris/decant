@@ -39,20 +39,28 @@ export interface MediaTask {
   from: FormatId;
   to: FormatId;
   options: Options;
+  /** Name prefix for temporary files on disk (see lib/disk.ts). */
+  diskPrefix: string;
+}
+
+export interface MediaResult {
+  blob: Blob;
+  /** Set when the output lives in the private file system and should be deleted with its job. */
+  disk?: string;
 }
 
 /** Signals the page to retry with ffmpeg.wasm, which reads far more formats but runs slower. */
 const fallback = (reason: string) => new ConversionError(reason, 'fallback');
 
-serve<MediaTask, Blob>(async (task, progress) => {
-  if (task.from === 'gif') return { result: await gifToVideo(task, progress) };
+serve<MediaTask, MediaResult>(async (task, progress) => {
+  if (task.from === 'gif') return { result: { blob: await gifToVideo(task, progress) } };
 
   const input = new Input({ source: new BlobSource(task.file), formats: ALL_FORMATS });
   try {
     const readable = await input.canRead().catch(() => false);
     if (!readable) throw fallback(`Unsupported container: ${task.from}`);
     await registerDecoders(input);
-    if (task.to === 'gif') return { result: await videoToGif(input, task.options, progress) };
+    if (task.to === 'gif') return { result: { blob: await videoToGif(input, task.options, progress) } };
     return { result: await transcode(input, task, progress) };
   } finally {
     input.dispose();
@@ -62,13 +70,34 @@ serve<MediaTask, Blob>(async (task, progress) => {
 // ---------------------------------------------------------------------------
 // Audio and video conversion
 
-async function transcode(input: Input, { file, to, options }: MediaTask, progress: ProgressFn): Promise<Blob> {
+async function transcode(
+  input: Input,
+  { file, to, options, diskPrefix }: MediaTask,
+  progress: ProgressFn,
+): Promise<MediaResult> {
   const spec = OUTPUT_SPECS[to];
   if (!spec) throw new ConversionError(`Decant can't write ${to.toUpperCase()} files yet.`);
   if (spec.audioCodec) await ensureAudioEncoder(spec.audioCodec);
 
   const trim = await resolveTrim(input, options);
-  const sink = await createSink(file.size);
+  const sink = await createSink(file.size, diskPrefix);
+  try {
+    return { blob: await convertInto(input, sink, to, spec, options, trim, progress), disk: sink.name };
+  } catch (error) {
+    await sink.discard();
+    throw error;
+  }
+}
+
+async function convertInto(
+  input: Input,
+  sink: Sink,
+  to: FormatId,
+  spec: OutputSpec,
+  options: Options,
+  trim: { start?: number; end?: number } | undefined,
+  progress: ProgressFn,
+): Promise<Blob> {
   const output = new Output({ format: outputFormat(to, sink.streaming), target: sink.target });
 
   const conversion = await Conversion.init({
@@ -81,9 +110,19 @@ async function transcode(input: Input, { file, to, options }: MediaTask, progres
     audio: (track) => audioOptions(track, spec, options),
   });
 
+  // Only the main video and audio tracks matter. Extra tracks WebCodecs can't handle (an iPhone's
+  // spatial-audio track, a DTS commentary) are dropped rather than sending the whole file through
+  // the much slower ffmpeg path.
+  const essential = new Set<number>();
+  if (!spec.audioOnly) {
+    const video = await input.getPrimaryVideoTrack();
+    if (video) essential.add(video.id);
+  }
+  const audio = await input.getPrimaryAudioTrack();
+  if (audio) essential.add(audio.id);
   const codecProblem = conversion.discardedTracks.find(
     (d) =>
-      (d.track.isVideoTrack() || d.track.isAudioTrack()) &&
+      essential.has(d.track.id) &&
       (d.reason === 'unknown_source_codec' ||
         d.reason === 'undecodable_source_codec' ||
         d.reason === 'no_encodable_target_codec'),
@@ -212,6 +251,10 @@ async function registerDecoders(input: Input) {
       if (!(await track.canDecode())) (await import('@mediabunny/ac3')).registerAc3Decoder();
       registered.add('ac3-decoder');
     }
+    if (track.isAudioTrack() && track.codec === 'dts' && !registered.has('dts-decoder')) {
+      if (!(await track.canDecode())) (await import('@mediabunny/dts')).registerDtsDecoder();
+      registered.add('dts-decoder');
+    }
     if (track.isVideoTrack() && track.codec === 'prores' && !registered.has('prores-decoder')) {
       if (!(await track.canDecode())) (await import('@mediabunny/prores')).registerProresDecoder();
       registered.add('prores-decoder');
@@ -225,15 +268,19 @@ async function registerDecoders(input: Input) {
 interface Sink {
   target: BufferTarget | StreamTarget;
   streaming: boolean;
+  /** File name in the private file system, for disk-backed outputs. */
+  name?: string;
   finish(mime: string): Promise<Blob>;
+  /** Cleans up after a failed or cancelled conversion. */
+  discard(): Promise<void>;
 }
 
 /** Outputs past this size go to the origin-private file system instead of memory. */
 const DISK_THRESHOLD = 512 * 1024 * 1024;
 
-async function createSink(inputSize: number): Promise<Sink> {
+async function createSink(inputSize: number, diskPrefix: string): Promise<Sink> {
   if (inputSize >= DISK_THRESHOLD) {
-    const disk = await createDiskSink().catch(() => null);
+    const disk = await createDiskSink(diskPrefix).catch(() => null);
     if (disk) return disk;
   }
   const target = new BufferTarget();
@@ -244,6 +291,7 @@ async function createSink(inputSize: number): Promise<Sink> {
       if (!target.buffer) throw new ConversionError('The converter finished without producing a file.');
       return new Blob([target.buffer], { type: mime });
     },
+    discard: async () => {},
   };
 }
 
@@ -253,11 +301,10 @@ interface SyncAccessHandle {
   close(): void;
 }
 
-async function createDiskSink(): Promise<Sink> {
+async function createDiskSink(prefix: string): Promise<Sink> {
   const root = await navigator.storage.getDirectory();
-  const handle = await root.getFileHandle(`decant-${Date.now()}-${Math.random().toString(36).slice(2)}`, {
-    create: true,
-  });
+  const name = `${prefix}${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`;
+  const handle = await root.getFileHandle(name, { create: true });
   const access = await (
     handle as unknown as { createSyncAccessHandle(): Promise<SyncAccessHandle> }
   ).createSyncAccessHandle();
@@ -266,14 +313,28 @@ async function createDiskSink(): Promise<Sink> {
       access.write(chunk.data, { at: chunk.position });
     },
   });
+  let open = true;
+  const close = () => {
+    if (!open) return;
+    open = false;
+    access.flush();
+    access.close();
+  };
   return {
     target: new StreamTarget(writable, { chunked: true }),
     streaming: true,
+    name,
     finish: async (mime) => {
-      access.flush();
-      access.close();
+      close();
       const file = await handle.getFile();
       return file.slice(0, file.size, mime);
+    },
+    discard: async () => {
+      try {
+        close();
+      } finally {
+        await root.removeEntry(name).catch(() => {});
+      }
     },
   };
 }

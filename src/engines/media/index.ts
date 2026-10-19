@@ -1,6 +1,7 @@
+import { DISK_PREFIX } from '../../lib/disk';
 import { WorkerPool } from '../../lib/worker-pool';
 import { ConversionError, type ConvertedFile, type ConvertRequest } from '../types';
-import type { MediaTask } from './media.worker';
+import type { MediaResult, MediaTask } from './media.worker';
 
 /** One worker: hardware encoders are a shared resource, and media jobs are memory-hungry. */
 const pool = new WorkerPool(
@@ -12,10 +13,19 @@ const pool = new WorkerPool(
 const RETRYABLE = new Set(['fallback', 'internal', 'crash']);
 
 export async function convert(request: ConvertRequest): Promise<ConvertedFile[]> {
-  const task: MediaTask = { file: request.file, from: request.from, to: request.to, options: request.options };
+  const task: MediaTask = {
+    file: request.file,
+    from: request.from,
+    to: request.to,
+    options: request.options,
+    diskPrefix: DISK_PREFIX,
+  };
   try {
-    const blob = await pool.run<Blob>(task, { signal: request.signal, onProgress: request.onProgress });
-    return [{ blob }];
+    const { blob, disk } = await pool.run<MediaResult>(task, {
+      signal: request.signal,
+      onProgress: request.onProgress,
+    });
+    return [{ blob, disk }];
   } catch (error) {
     if (!(error instanceof ConversionError) || !RETRYABLE.has(error.code) || request.signal.aborted) throw error;
     if (import.meta.env.DEV) console.info('[decant] WebCodecs path failed, using ffmpeg.wasm:', error.message);

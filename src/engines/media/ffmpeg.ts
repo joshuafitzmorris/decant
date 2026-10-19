@@ -24,7 +24,12 @@ function load(onProgress: ProgressFn): Promise<FFmpeg> {
       );
       onProgress(null, 'Starting the converter');
       const instance = new FFmpeg();
-      await instance.load({ coreURL: vendorUrl('ffmpeg-core.js'), wasmURL });
+      try {
+        await instance.load({ coreURL: vendorUrl('ffmpeg-core.js'), wasmURL });
+      } finally {
+        // The worker has compiled its own copy; don't keep 32 MB alive for nothing.
+        URL.revokeObjectURL(wasmURL);
+      }
       return instance;
     })();
     ffmpeg.catch(() => {
@@ -52,6 +57,10 @@ async function downloadWithProgress(url: string, onProgress: (fraction: number |
   return URL.createObjectURL(new Blob(chunks as BlobPart[], { type: 'application/wasm' }));
 }
 
+/** ffmpeg's memory grows with each job; release it once nothing has needed it for a while. */
+const IDLE_SHUTDOWN_MS = 2 * 60_000;
+let idleTimer: ReturnType<typeof setTimeout> | undefined;
+
 function reset() {
   const current = ffmpeg;
   ffmpeg = null;
@@ -59,6 +68,15 @@ function reset() {
 }
 
 export async function convertWithFfmpeg({ file, to, options, signal, onProgress }: ConvertRequest): Promise<Blob> {
+  clearTimeout(idleTimer);
+  try {
+    return await runFfmpeg({ file, to, options, signal, onProgress });
+  } finally {
+    idleTimer = setTimeout(reset, IDLE_SHUTDOWN_MS);
+  }
+}
+
+async function runFfmpeg({ file, to, options, signal, onProgress }: Omit<ConvertRequest, 'from'>): Promise<Blob> {
   const instance = await load(onProgress);
   if (signal.aborted) throw abortError();
 

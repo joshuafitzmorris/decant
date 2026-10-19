@@ -22,14 +22,20 @@ let nextTaskId = 1;
  * WebAssembly encoder mid-frame; a fresh worker takes its place.
  */
 export class WorkerPool {
+  private readonly live = new Set<Worker>();
   private readonly idle: Worker[] = [];
+  private readonly idleTimers = new Map<Worker, ReturnType<typeof setTimeout>>();
   private readonly busy = new Map<Worker, Task>();
   private readonly queue: Task[] = [];
-  private size = 0;
 
+  /**
+   * @param idleMs Workers left unused this long are terminated, releasing the
+   *   memory their WebAssembly codecs grew to. A new one starts when needed.
+   */
   constructor(
     private readonly spawnWorker: () => Worker,
     private readonly maxWorkers: number,
+    private readonly idleMs = 60_000,
   ) {}
 
   run<T>(
@@ -55,8 +61,10 @@ export class WorkerPool {
 
   private pump() {
     while (this.queue.length > 0) {
-      const worker = this.idle.pop() ?? (this.size < this.maxWorkers ? this.spawn() : undefined);
+      const worker = this.idle.pop() ?? (this.live.size < this.maxWorkers ? this.spawn() : undefined);
       if (!worker) return;
+      clearTimeout(this.idleTimers.get(worker));
+      this.idleTimers.delete(worker);
       const task = this.queue.shift() as Task;
       this.busy.set(worker, task);
       worker.postMessage({ id: task.id, payload: task.payload }, task.transfer);
@@ -65,7 +73,7 @@ export class WorkerPool {
 
   private spawn(): Worker {
     const worker = this.spawnWorker();
-    this.size++;
+    this.live.add(worker);
     worker.onmessage = (event: MessageEvent<WorkerMessage>) => this.handleMessage(worker, event.data);
     worker.onerror = (event) => {
       event.preventDefault();
@@ -83,6 +91,10 @@ export class WorkerPool {
     }
     this.busy.delete(worker);
     this.idle.push(worker);
+    this.idleTimers.set(
+      worker,
+      setTimeout(() => this.retire(worker, null), this.idleMs),
+    );
     if (message.type === 'done') task.resolve(message.result);
     else task.reject(new ConversionError(message.message, message.code ?? 'internal'));
     this.pump();
@@ -103,13 +115,16 @@ export class WorkerPool {
     }
   }
 
+  /** Terminates a worker (crashed, cancelled or idle) and rejects its task, if it had one. Safe to call twice. */
   private retire(worker: Worker, reason: unknown) {
+    if (!this.live.delete(worker)) return;
     const task = this.busy.get(worker);
     worker.terminate();
     this.busy.delete(worker);
+    clearTimeout(this.idleTimers.get(worker));
+    this.idleTimers.delete(worker);
     const idleIndex = this.idle.indexOf(worker);
     if (idleIndex >= 0) this.idle.splice(idleIndex, 1);
-    this.size--;
     task?.reject(reason);
     this.pump();
   }

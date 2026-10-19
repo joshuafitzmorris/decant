@@ -158,7 +158,8 @@ export async function imagesToPdf(
   { signal, onProgress }: Pick<ConvertRequest, 'signal' | 'onProgress'>,
   sources?: FormatId[],
 ): Promise<Blob> {
-  const { PDFDocument } = await import('pdf-lib');
+  const { PDFDocument, degrees } = await import('pdf-lib');
+  const { jpegOrientation } = await import('../image/codecs');
   const doc = await PDFDocument.create();
   doc.setProducer('Decant');
   doc.setCreator('Decant');
@@ -169,35 +170,77 @@ export async function imagesToPdf(
     const file = files[i] as Blob;
     const source = sources?.[i] ?? from;
     // JPEG and PNG embed as-is (no re-encoding, no quality loss); everything else becomes PNG first.
-    let bytes: Uint8Array;
-    let kind: 'jpg' | 'png';
-    if (source === 'jpg' || source === 'png') {
-      bytes = new Uint8Array(await file.arrayBuffer());
-      kind = source;
-    } else {
+    let bytes = new Uint8Array(await file.arrayBuffer());
+    let kind: 'jpg' | 'png' = source === 'jpg' ? 'jpg' : 'png';
+    let orientation = source === 'jpg' ? jpegOrientation(bytes) : 1;
+    // Mirrored EXIF orientations can't be expressed as a rotation; let the image engine bake them in.
+    const mirrored = orientation === 2 || orientation === 4 || orientation === 5 || orientation === 7;
+    if ((source !== 'jpg' && source !== 'png') || mirrored) {
       const { transcodeImage } = await import('../image');
-      const png = await transcodeImage(file, source, 'png', { size: 'original' }, signal);
-      bytes = new Uint8Array(await png.arrayBuffer());
-      kind = 'png';
+      const target = mirrored ? 'jpg' : 'png';
+      const converted = await transcodeImage(file, source, target, { size: 'original', quality: 92 }, signal);
+      bytes = new Uint8Array(await converted.arrayBuffer());
+      kind = target;
+      orientation = 1;
     }
     const image = await (kind === 'jpg' ? doc.embedJpg(bytes) : doc.embedPng(bytes)).catch(() => {
       throw new ConversionError("One of the images couldn't be added to the PDF. It may be damaged.");
     });
 
+    // Phones store portrait photos as landscape pixels plus an EXIF rotation, which PDF viewers ignore.
+    // Rotate the embedded image instead of re-encoding it.
+    const quarterTurn = orientation === 6 || orientation === 8;
+    const shownWidth = quarterTurn ? image.height : image.width;
+    const shownHeight = quarterTurn ? image.width : image.height;
+
+    let pageWidth: number;
+    let pageHeight: number;
+    let scale: number;
     const pageSize = PAGE_SIZES[String(options.page)];
     if (pageSize) {
-      const landscape = image.width > image.height;
-      const [pw, ph] = landscape ? [pageSize[1], pageSize[0]] : pageSize;
-      const scale = Math.min((pw - MARGIN * 2) / image.width, (ph - MARGIN * 2) / image.height, 1);
-      const w = image.width * scale;
-      const h = image.height * scale;
-      doc.addPage([pw, ph]).drawImage(image, { x: (pw - w) / 2, y: (ph - h) / 2, width: w, height: h });
+      [pageWidth, pageHeight] = shownWidth > shownHeight ? [pageSize[1], pageSize[0]] : pageSize;
+      scale = Math.min((pageWidth - MARGIN * 2) / shownWidth, (pageHeight - MARGIN * 2) / shownHeight, 1);
     } else {
       // One image pixel per point (the image at 72 dpi), capped at the 200-inch limit PDF readers enforce.
-      const scale = Math.min(1, 14400 / Math.max(image.width, image.height));
-      const w = image.width * scale;
-      const h = image.height * scale;
-      doc.addPage([w, h]).drawImage(image, { x: 0, y: 0, width: w, height: h });
+      scale = Math.min(1, 14400 / Math.max(shownWidth, shownHeight));
+      pageWidth = shownWidth * scale;
+      pageHeight = shownHeight * scale;
+    }
+
+    // The box the image should appear in, then where pdf-lib must anchor the rotated drawing to fill it.
+    const boxWidth = shownWidth * scale;
+    const boxHeight = shownHeight * scale;
+    const left = (pageWidth - boxWidth) / 2;
+    const bottom = (pageHeight - boxHeight) / 2;
+    const drawWidth = image.width * scale;
+    const drawHeight = image.height * scale;
+    const page = doc.addPage([pageWidth, pageHeight]);
+    if (orientation === 3) {
+      page.drawImage(image, {
+        x: left + boxWidth,
+        y: bottom + boxHeight,
+        width: drawWidth,
+        height: drawHeight,
+        rotate: degrees(180),
+      });
+    } else if (orientation === 6) {
+      page.drawImage(image, {
+        x: left,
+        y: bottom + boxHeight,
+        width: drawWidth,
+        height: drawHeight,
+        rotate: degrees(-90),
+      });
+    } else if (orientation === 8) {
+      page.drawImage(image, {
+        x: left + boxWidth,
+        y: bottom,
+        width: drawWidth,
+        height: drawHeight,
+        rotate: degrees(90),
+      });
+    } else {
+      page.drawImage(image, { x: left, y: bottom, width: drawWidth, height: drawHeight });
     }
   }
 

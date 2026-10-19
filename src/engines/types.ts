@@ -18,6 +18,8 @@ export interface ConvertedFile {
   suffix?: string;
   /** Overrides the target format's extension, e.g. when a PDF page becomes a JPG. */
   ext?: string;
+  /** Name of the backing file in the private file system, deleted when the result is discarded. */
+  disk?: string;
 }
 
 export interface Engine {

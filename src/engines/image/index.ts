@@ -36,8 +36,9 @@ export async function transcodeImage(
   let taskOptions = options;
   const transfer: Transferable[] = [];
   if (from === 'svg') {
-    // Workers have no SVG renderer, so vector images are rasterised here first.
-    input = await rasterizeSvg(file, options);
+    // Workers have no SVG renderer, so vector images are rasterised here first. Icons get every
+    // size up to 256 px, so draw them at 256 rather than enlarging a small rendering.
+    input = await rasterizeSvg(file, to === 'ico' ? { ...options, size: '256' } : options);
     taskOptions = { ...options, size: 'original' };
     transfer.push(input);
   }

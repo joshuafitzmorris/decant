@@ -1,6 +1,7 @@
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { App } from './app/App';
+import { holdSessionLock, sweepDisk } from './lib/disk';
 import { addFiles, getState, subscribe } from './state/jobs';
 import './styles/index.css';
 
@@ -47,12 +48,6 @@ launchQueue?.setConsumer(async ({ files }) => {
   if (files.length) addFiles(await Promise.all(files.map((handle) => handle.getFile())));
 });
 
-// Very large video conversions write to the browser's private file system; tidy up after earlier visits.
-void navigator.storage
-  ?.getDirectory?.()
-  .then(async (dir) => {
-    for await (const name of (dir as unknown as { keys(): AsyncIterable<string> }).keys()) {
-      if (name.startsWith('decant-')) await dir.removeEntry(name).catch(() => {});
-    }
-  })
-  .catch(() => {});
+// Very large video conversions write to the browser's private file system; tidy up after closed tabs.
+holdSessionLock();
+void sweepDisk().catch(() => {});

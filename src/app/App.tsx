@@ -210,15 +210,25 @@ function DropOverlay() {
 function LiveAnnouncer({ jobs }: { jobs: Job[] }) {
   const [message, setMessage] = useState('');
   const seen = useRef(new Map<string, string>());
+  const repeat = useRef(false);
   useEffect(() => {
+    const converted: string[] = [];
+    const failed: string[] = [];
     for (const job of jobs) {
-      const previous = seen.current.get(job.id);
-      if (previous !== job.status) {
-        seen.current.set(job.id, job.status);
-        if (job.status === 'done') setMessage(`Converted ${job.file.name}`);
-        if (job.status === 'failed') setMessage(`Couldn't convert ${job.file.name}`);
-      }
+      if (seen.current.get(job.id) === job.status) continue;
+      seen.current.set(job.id, job.status);
+      if (job.status === 'done') converted.push(job.file.name);
+      if (job.status === 'failed') failed.push(job.file.name);
     }
+    const parts: string[] = [];
+    if (converted.length)
+      parts.push(converted.length === 1 ? `Converted ${converted[0]}.` : `Converted ${converted.length} files.`);
+    if (failed.length)
+      parts.push(failed.length === 1 ? `Couldn't convert ${failed[0]}.` : `Couldn't convert ${failed.length} files.`);
+    if (parts.length === 0) return;
+    // Screen readers skip an unchanged message, so alternate an invisible character to repeat one.
+    repeat.current = !repeat.current;
+    setMessage(parts.join(' ') + (repeat.current ? '\u200b' : ''));
   }, [jobs]);
   return (
     <p aria-live="polite" className="sr-only">

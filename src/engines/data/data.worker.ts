@@ -2,6 +2,7 @@ import { unzipSync, type Zippable, zipSync } from 'fflate';
 import * as XLSX from 'xlsx';
 import * as cptable from 'xlsx/dist/cpexcel.full.mjs';
 import type { FormatId } from '../../core/formats';
+import { readText } from '../../core/text';
 import { serve } from '../../lib/worker-host';
 import { ConversionError } from '../types';
 import {
@@ -42,7 +43,7 @@ const MIME: Record<string, string> = {
 serve<DataTask, DataOutput[]>(async ({ file, from, to }, progress) => {
   progress(null, 'Reading');
   if (STRUCTURED.has(from) && STRUCTURED.has(to)) {
-    const value = await parseStructured(await file.text(), from as StructuredFormat);
+    const value = await parseStructured(await readText(file), from as StructuredFormat);
     const text = await stringifyStructured(value, to as StructuredFormat);
     return { result: [{ blob: new Blob([text], { type: MIME[to] }) }] };
   }
@@ -57,7 +58,7 @@ serve<DataTask, DataOutput[]>(async ({ file, from, to }, progress) => {
 
 async function readWorkbook(file: File, from: FormatId, literal: boolean): Promise<XLSX.WorkBook> {
   if (from === 'json') {
-    const tables = jsonToTables(await parseStructured(await file.text(), 'json'));
+    const tables = jsonToTables(await parseStructured(await readText(file), 'json'));
     const book = XLSX.utils.book_new();
     for (const table of tables) {
       const sheet = table.rows.every((row) => Array.isArray(row))
@@ -69,7 +70,7 @@ async function readWorkbook(file: File, from: FormatId, literal: boolean): Promi
   }
   try {
     if (from === 'csv' || from === 'tsv') {
-      const text = (await file.text()).replace(/^﻿/, '');
+      const text = await readText(file);
       return XLSX.read(text, {
         type: 'string',
         raw: literal,

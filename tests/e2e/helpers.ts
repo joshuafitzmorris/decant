@@ -15,15 +15,22 @@ export interface Converted {
   entries?: Record<string, Uint8Array>;
 }
 
-/** Adds files through the real file input, picks a target and converts. */
+export interface FilePayload {
+  name: string;
+  mimeType: string;
+  buffer: Buffer;
+}
+
+/** Adds files (fixture names or in-memory files) through the real file input, picks a target and converts. */
 export async function convert(
   page: Page,
-  files: string[],
+  files: (string | FilePayload)[],
   target: FormatId,
   setOptions?: (page: Page) => Promise<void>,
 ): Promise<void> {
   await page.goto('./');
-  await page.locator('input[type=file]').setInputFiles(files.map(fixture));
+  const inputs = files.map((f) => (typeof f === 'string' ? fixture(f) : f));
+  await page.locator('input[type=file]').setInputFiles(inputs as string[] | FilePayload[]);
   const label = getFormat(target).label;
   await page.getByRole('button', { name: label, exact: true }).first().click();
   await expect(page.getByRole('button', { name: label, exact: true }).first()).toHaveAttribute('aria-pressed', 'true');

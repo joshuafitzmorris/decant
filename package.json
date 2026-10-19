@@ -40,6 +40,7 @@
     "@jsquash/webp": "^1.5.0",
     "@mediabunny/aac-encoder": "^1.61.6",
     "@mediabunny/ac3": "^1.61.6",
+    "@mediabunny/dts": "^1.61.6",
     "@mediabunny/flac-encoder": "^1.61.6",
     "@mediabunny/mp3-encoder": "^1.61.6",
     "@mediabunny/prores": "^1.61.6",
