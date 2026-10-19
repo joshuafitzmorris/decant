@@ -1,6 +1,8 @@
 import { Mark } from './icons';
 
 export const REPO_URL = 'https://github.com/joshuafitzmorris/decant';
+/** Where "buy me a coffee" points. Until it's set, the footer asks for a GitHub star instead. */
+export const SUPPORT_URL: string | null = null;
 
 export function Header() {
   return (

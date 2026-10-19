@@ -1,4 +1,5 @@
 import { defineConfig, devices } from '@playwright/test';
+import { BASE_PATH } from './scripts/site.ts';
 
 const PORT = 4173;
 // Set E2E_BASE_URL (e.g. https://joshuafitzmorris.github.io/decant/) to test a deployed site instead of a local build.
@@ -13,7 +14,7 @@ export default defineConfig({
   retries: process.env.CI ? 1 : 0,
   reporter: process.env.CI ? [['github'], ['html', { open: 'never' }]] : 'list',
   use: {
-    baseURL: deployed ?? `http://localhost:${PORT}/decant/`,
+    baseURL: deployed ?? `http://localhost:${PORT}${BASE_PATH}`,
     acceptDownloads: true,
     trace: 'retain-on-failure',
   },
@@ -30,7 +31,7 @@ export default defineConfig({
     ? undefined
     : {
         command: `npm run build && npx vite preview --port ${PORT} --strictPort`,
-        url: `http://localhost:${PORT}/decant/`,
+        url: `http://localhost:${PORT}${BASE_PATH}`,
         reuseExistingServer: !process.env.CI,
         timeout: 180_000,
       },

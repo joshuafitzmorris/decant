@@ -3,13 +3,13 @@ import tailwindcss from '@tailwindcss/vite';
 import react from '@vitejs/plugin-react';
 import { defineConfig } from 'vite';
 import { VitePWA } from 'vite-plugin-pwa';
+import { BASE_PATH, SITE_URL } from './scripts/site.ts';
 import { htmlExtras, landingPages } from './scripts/vite-html.ts';
 import { vendorAssets } from './scripts/vite-vendor.ts';
 import { LANDING_PAIRS, landingCopy } from './src/core/landing.ts';
 
-// GitHub Pages serves the site from /decant/. Override BASE_PATH and SITE_URL for other hosts.
-const base = process.env.BASE_PATH ?? '/decant/';
-const siteUrl = process.env.SITE_URL ?? `https://joshuafitzmorris.github.io${base}`;
+const base = BASE_PATH;
+const siteUrl = SITE_URL;
 
 export default defineConfig(({ command, isPreview }) => ({
   base: command === 'build' || isPreview ? base : '/',
@@ -17,7 +17,7 @@ export default defineConfig(({ command, isPreview }) => ({
     react(),
     tailwindcss(),
     vendorAssets(),
-    htmlExtras(),
+    htmlExtras({ siteUrl }),
     landingPages({ siteUrl, pairs: LANDING_PAIRS, copy: (from, to) => landingCopy(from as never, to as never) }),
     VitePWA({
       // Updates are applied by src/main.tsx when the page is idle, never mid-conversion.

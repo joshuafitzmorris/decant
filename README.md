@@ -10,7 +10,14 @@
 
 ![Three photos converted to WebP in Decant's dark theme](docs/convert-dark.png)
 
-Decant converts images, audio, video, documents and spreadsheets on your own machine. Files are read from your disk, converted inside the tab with WebCodecs and WebAssembly, and saved straight back. There's no server, so there's no queue, no upload wait, no account, no ads and no file size limit beyond what your device can hold. It works offline too: the page, and each converter once you've used it, stay in your browser's cache.
+Online converters turn a ten-second job into a chore: upload your file to someone else's server, wait in a queue, dodge the ads, hit a size limit, make an account. Decant skips all of it. It converts images, audio, video, documents and spreadsheets inside the browser tab, so your files never leave your device and most conversions finish in under a second.
+
+- **No ads, no tracking.** No analytics, no cookies, no third-party requests and no account. The page's security policy stops it from talking to any other site.
+- **No queue, no limits.** Nothing waits on a server, and the only size limit is what your device can hold.
+- **Open source.** MIT licensed, so you can check every claim here against the code.
+- **Works offline.** The page, and each converter once you've used it, stay in your browser's cache.
+
+**How does it make money?** It doesn't. It's a static site with nothing to bill, so it stays free. If it saves you some hassle, star the repo.
 
 ## What it converts
 
@@ -52,6 +59,8 @@ flowchart LR
 ### Privacy you can check
 
 The page ships with a [Content-Security-Policy](scripts/vite-html.ts) whose `connect-src` allows only the page's own origin, so the browser itself refuses to send data anywhere else. The end-to-end suite includes a test that tries to `POST` to another site from the page and confirms it fails. There are no analytics, cookies or third-party requests of any kind, and the fonts and WebAssembly are self-hosted.
+
+Decant is served as static files by GitHub Pages. Like any web host, it sees the request for the page itself; your files are never part of any request.
 
 ## Speed
 

@@ -1,7 +1,7 @@
 import { CATEGORY_NAMES, type Category, FORMATS, type FormatId, getFormat } from '../core/formats';
 import { LANDING_PAIRS, landingSlug } from '../core/landing';
 import { readableFormats } from '../core/routes';
-import { REPO_URL } from './Header';
+import { REPO_URL, SUPPORT_URL } from './Header';
 
 const CATEGORIES: Category[] = ['image', 'audio', 'video', 'document', 'data'];
 
@@ -15,6 +15,8 @@ const CREDITS: [string, string][] = [
   ['SheetJS', 'https://sheetjs.com'],
   ['Mammoth', 'https://github.com/mwilliamson/mammoth.js'],
 ];
+
+const inlineLink = 'text-ink underline decoration-rule-strong underline-offset-4 hover:decoration-ink';
 
 export function Footer() {
   const readable = new Set<FormatId>(readableFormats());
@@ -34,15 +36,33 @@ export function Footer() {
             usually converts faster than it plays. Formats that need it fall back to a copy of ffmpeg that is downloaded
             once and then cached.
           </p>
+          <p>Converters you've used keep working offline: the page and its code stay in your browser's cache.</p>
+
+          <h2 className="pt-6 text-[1.35rem] font-[700] text-ink [font-variation-settings:'wdth'_90]">
+            No ads, no tracking
+          </h2>
           <p>
-            Decant works offline too: the page, and each converter once you've used it, stay in your browser's cache. It
-            is open source:{' '}
-            <a
-              href={REPO_URL}
-              className="text-ink underline decoration-rule-strong underline-offset-4 hover:decoration-ink"
-            >
+            There are no ads, no analytics, no cookies and no accounts. Decant doesn't know who you are or what you
+            convert, because your files never leave your device.
+          </p>
+          <p>
+            It's free and open source under the MIT licence:{' '}
+            <a href={REPO_URL} className={inlineLink}>
               read the code on GitHub
             </a>
+            .
+          </p>
+          <p>
+            How does it make money? It doesn't. If it saved you some hassle,{' '}
+            {SUPPORT_URL ? (
+              <a href={SUPPORT_URL} className={inlineLink} rel="noopener">
+                buy me a coffee
+              </a>
+            ) : (
+              <a href={REPO_URL} className={inlineLink}>
+                star it on GitHub
+              </a>
+            )}
             .
           </p>
           <p className="pt-2 text-[0.8125rem] text-ink-3">

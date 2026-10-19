@@ -23,18 +23,24 @@ export const CONTENT_SECURITY_POLICY = [
   "form-action 'none'",
 ].join('; ');
 
-/** Production-only additions to index.html: the CSP and a preload for the display font. */
-export function htmlExtras(): Plugin {
+/**
+ * index.html additions: the site's public URL in canonical and social tags (always),
+ * plus, in production builds, the CSP and a preload for the display font.
+ */
+export function htmlExtras({ siteUrl }: { siteUrl: string }): Plugin {
   let base = '/';
+  let building = false;
   return {
     name: 'decant:html-extras',
-    apply: 'build',
     configResolved(config) {
       base = config.base;
+      building = config.command === 'build';
     },
     transformIndexHtml: {
       order: 'post',
-      handler(html, context) {
+      handler(rawHtml, context) {
+        const html = rawHtml.replaceAll('%SITE_URL%', siteUrl);
+        if (!building) return html;
         // Directly after the charset declaration, which must stay first.
         const csp = `<meta http-equiv="Content-Security-Policy" content="${CONTENT_SECURITY_POLICY}" />`;
         const withCsp = html.replace(/<meta charset="UTF-8" \/>/i, (charset) => `${charset}\n    ${csp}`);

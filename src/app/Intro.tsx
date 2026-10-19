@@ -75,8 +75,8 @@ export function Intro({ onChoose, pair }: IntroProps) {
       />
       <p className="mt-10 max-w-[34ch] text-[clamp(1.2rem,2.2vw,1.45rem)] leading-[1.4] text-ink-2 [text-wrap:pretty]">
         {source && target
-          ? `Convert ${source.label} files to ${target.label} without uploading them. Every file stays on this device.`
-          : 'Convert photos, audio, video, documents and spreadsheets without uploading them. Every file stays on this device.'}
+          ? `Convert ${source.label} files to ${target.label} without uploading them. No ads, no tracking, no sign-up.`
+          : 'Convert photos, audio, video, documents and spreadsheets without uploading them. No ads, no tracking, no sign-up.'}
       </p>
       <div className="mt-9 flex flex-wrap items-center gap-x-5 gap-y-3">
         <button
