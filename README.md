@@ -75,14 +75,14 @@ The page itself scores 98 for performance and 100 for accessibility, best practi
 npm install
 npm run dev        # http://localhost:5173
 npm test           # unit tests (Vitest)
-npm run test:e2e   # real conversions in Chrome (Playwright)
+npm run test:e2e   # real conversions in Chrome and WebKit (Playwright)
 npm run build      # production build in dist/
 
 # Run the browser suite against the deployed site instead of a local build
 E2E_BASE_URL=https://joshuafitzmorris.github.io/decant/ npm run test:e2e
 ```
 
-The end-to-end tests use Google Chrome rather than bundled Chromium, because WebCodecs relies on Chrome's H.264 and AAC support. Every push to `main` runs lint, type checks and both test suites, then deploys to GitHub Pages.
+The browser suite runs in Google Chrome rather than bundled Chromium, because WebCodecs relies on Chrome's H.264 and AAC support, and in WebKit, Safari's engine (install Playwright's build once with `npx playwright install webkit`). Every push to `main` runs lint, type checks and both test suites, with WebKit on macOS so it uses the same media frameworks as Safari, then deploys to GitHub Pages.
 
 ```
 src/
@@ -104,7 +104,7 @@ tests/
 
 ## Limits
 
-- The automated tests run in Chrome. Decant uses standard APIs that current Firefox and Safari also implement, but they ship fewer WebCodecs codecs, so more video conversions there go through the slower ffmpeg.wasm path.
+- The browser tests run in Chrome and in WebKit, Safari's engine. Firefox isn't covered yet: Decant sticks to standard APIs that current Firefox also implements, but no automated test checks it there. When a browser lacks a codec, the conversion falls back to the slower ffmpeg.wasm path; in Safari that happens for FLAC, which WebKit's own decoder can't read.
 - Layout-heavy conversions such as Word to PDF aren't offered; doing them faithfully needs a full office suite.
 - Speed depends on your device and browser. Video re-encoding is fastest where the browser has hardware encoders; the ffmpeg.wasm fallback is much slower than native ffmpeg.
 - Very large files are bound by memory. Video outputs from inputs over 512 MB are written to the browser's private file system instead of RAM.

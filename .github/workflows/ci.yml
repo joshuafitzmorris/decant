@@ -35,12 +35,12 @@ jobs:
       # GitHub's Ubuntu images ship Chrome already; install it only if missing.
       - name: Ensure Google Chrome
         run: google-chrome --version || npx playwright install --with-deps chrome
-      - run: npm run test:e2e
+      - run: npm run test:e2e -- --project=chrome
 
       - if: failure()
         uses: actions/upload-artifact@v7
         with:
-          name: playwright-report
+          name: playwright-report-chrome
           path: playwright-report
           retention-days: 7
 
@@ -49,9 +49,33 @@ jobs:
         with:
           path: dist
 
+  webkit:
+    name: Browser tests in WebKit
+    # macOS, so WebKit decodes and encodes media with the same system frameworks Safari uses.
+    runs-on: macos-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+
+      - run: npm ci
+      - run: npx playwright install webkit
+      - run: npm run test:e2e -- --project=webkit
+
+      - if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: playwright-report-webkit
+          path: playwright-report
+          retention-days: 7
+
   deploy:
     name: Deploy to GitHub Pages
-    needs: test
+    needs: [test, webkit]
     if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
     runs-on: ubuntu-latest
     permissions:

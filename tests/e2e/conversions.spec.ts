@@ -4,7 +4,7 @@ import type { FormatId } from '../../src/core/formats';
 import { convert, expectFormat, fixture, saveResult, text } from './helpers';
 
 /**
- * One real conversion per route family, driven through the UI in Chrome.
+ * One real conversion per route family, driven through the UI in Chrome and WebKit.
  * Each output is checked with the app's own format sniffer.
  */
 const BINARY: [source: string, target: FormatId][] = [

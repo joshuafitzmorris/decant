@@ -23,6 +23,8 @@ export default defineConfig({
       name: 'chrome',
       use: { ...devices['Desktop Chrome'], channel: 'chrome' },
     },
+    // Safari's engine. Run it on macOS, where it uses the same media and image frameworks as Safari.
+    { name: 'webkit', use: { ...devices['Desktop Safari'] } },
   ],
   webServer: deployed
     ? undefined
