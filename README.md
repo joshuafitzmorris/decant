@@ -77,6 +77,9 @@ npm run dev        # http://localhost:5173
 npm test           # unit tests (Vitest)
 npm run test:e2e   # real conversions in Chrome (Playwright)
 npm run build      # production build in dist/
+
+# Run the browser suite against the deployed site instead of a local build
+E2E_BASE_URL=https://joshuafitzmorris.github.io/decant/ npm run test:e2e
 ```
 
 The end-to-end tests use Google Chrome rather than bundled Chromium, because WebCodecs relies on Chrome's H.264 and AAC support. Every push to `main` runs lint, type checks and both test suites, then deploys to GitHub Pages.

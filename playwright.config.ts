@@ -1,6 +1,8 @@
 import { defineConfig, devices } from '@playwright/test';
 
 const PORT = 4173;
+// Set E2E_BASE_URL (e.g. https://joshuafitzmorris.github.io/decant/) to test a deployed site instead of a local build.
+const deployed = process.env.E2E_BASE_URL;
 
 export default defineConfig({
   testDir: 'tests/e2e',
@@ -11,7 +13,7 @@ export default defineConfig({
   retries: process.env.CI ? 1 : 0,
   reporter: process.env.CI ? [['github'], ['html', { open: 'never' }]] : 'list',
   use: {
-    baseURL: `http://localhost:${PORT}/decant/`,
+    baseURL: deployed ?? `http://localhost:${PORT}/decant/`,
     acceptDownloads: true,
     trace: 'retain-on-failure',
   },
@@ -22,10 +24,12 @@ export default defineConfig({
       use: { ...devices['Desktop Chrome'], channel: 'chrome' },
     },
   ],
-  webServer: {
-    command: `npm run build && npx vite preview --port ${PORT} --strictPort`,
-    url: `http://localhost:${PORT}/decant/`,
-    reuseExistingServer: !process.env.CI,
-    timeout: 180_000,
-  },
+  webServer: deployed
+    ? undefined
+    : {
+        command: `npm run build && npx vite preview --port ${PORT} --strictPort`,
+        url: `http://localhost:${PORT}/decant/`,
+        reuseExistingServer: !process.env.CI,
+        timeout: 180_000,
+      },
 });
