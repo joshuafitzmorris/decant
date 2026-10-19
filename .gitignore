@@ -1,0 +1,10 @@
+node_modules
+dist
+coverage
+test-results
+playwright-report
+tests/.large
+.DS_Store
+*.log
+.vite
+.claude

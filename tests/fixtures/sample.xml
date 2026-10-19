@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<service name="decant">
+  <version>1</version>
+  <feature>images</feature>
+  <feature>audio</feature>
+</service>

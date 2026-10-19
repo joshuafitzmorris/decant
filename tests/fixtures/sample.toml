@@ -1,0 +1,7 @@
+service = "decant"
+version = 1
+features = ["images", "audio"]
+
+[limits]
+maxFiles = 50
+offline = true

@@ -1,0 +1,20 @@
+[
+  {
+    "name": "Ada",
+    "role": "Engineer",
+    "joined": "2021-04-01",
+    "score": 92.5
+  },
+  {
+    "name": "Grace",
+    "role": "Admiral",
+    "joined": "2019-11-15",
+    "score": 88
+  },
+  {
+    "name": "Linus",
+    "role": "Maintainer",
+    "joined": "2020-02-29",
+    "score": 79.25
+  }
+]

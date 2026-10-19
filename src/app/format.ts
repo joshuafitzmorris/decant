@@ -1,0 +1,34 @@
+/** 2_400_000 → "2.4 MB" (decimal units, like macOS Finder). */
+export function formatBytes(bytes: number): string {
+  if (bytes < 1000) return `${bytes} B`;
+  const units = ['KB', 'MB', 'GB', 'TB'];
+  let value = bytes / 1000;
+  let unit = 0;
+  while (value >= 1000 && unit < units.length - 1) {
+    value /= 1000;
+    unit++;
+  }
+  return `${value < 10 ? value.toFixed(1) : Math.round(value)} ${units[unit]}`;
+}
+
+/** 412 → "0.4 s", 75_000 → "1 min 15 s" */
+export function formatDuration(ms: number): string {
+  if (ms < 10_000) return `${(ms / 1000).toFixed(1)} s`;
+  if (ms < 60_000) return `${Math.round(ms / 1000)} s`;
+  const minutes = Math.floor(ms / 60_000);
+  const seconds = Math.round((ms % 60_000) / 1000);
+  return seconds ? `${minutes} min ${seconds} s` : `${minutes} min`;
+}
+
+/** Size change as a short phrase: "54% smaller", "2.1× larger". */
+export function describeSizeChange(before: number, after: number): string | null {
+  if (before <= 0 || after <= 0) return null;
+  const ratio = after / before;
+  if (ratio < 0.995) return `${Math.round((1 - ratio) * 100)}% smaller`;
+  if (ratio > 1.005) return ratio >= 2 ? `${ratio.toFixed(1)}× larger` : `${Math.round((ratio - 1) * 100)}% larger`;
+  return 'same size';
+}
+
+export function plural(count: number, one: string, many = `${one}s`): string {
+  return `${count} ${count === 1 ? one : many}`;
+}

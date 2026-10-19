@@ -1,0 +1,4 @@
+Decant sample
+
+Plain text, two paragraphs.
+With a line break.
