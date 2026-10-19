@@ -1,3 +1,4 @@
+/// <reference types="vite-plugin-pwa/client" />
 declare module 'gifenc' {
   export type Palette = number[][];
   export type PixelFormat = 'rgb565' | 'rgb444' | 'rgba4444';
@@ -59,3 +60,7 @@ declare module '@joplin/turndown-plugin-gfm' {
   export const strikethrough: TurndownService.Plugin;
   export const taskListItems: TurndownService.Plugin;
 }
+
+/** Versioned paths to self-hosted runtime assets, relative to the site base. Defined in scripts/vite-vendor.ts. */
+declare const __VENDOR_FFMPEG__: string;
+declare const __VENDOR_PDFJS__: string;

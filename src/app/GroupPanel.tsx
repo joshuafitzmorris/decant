@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
 import { CATEGORY_NAMES, type FormatId, getFormat } from '../core/formats';
 import { CATEGORY_NOUNS, groupOptionDefs, groupTargets } from '../core/groups';
+import { baseName } from '../core/names';
 import { zipFiles } from '../core/zip';
 import {
   cancelJob,
@@ -57,7 +58,12 @@ export function GroupPanel({ group, jobs, prominent }: GroupPanelProps) {
     }
     setZipping(true);
     try {
-      saveBlob(await zipFiles(outputs), `${CATEGORY_NOUNS[group.category]} as ${target.label}.zip`);
+      // One source with several results (PDF pages, workbook sheets) is named after that file.
+      const name =
+        finished.length === 1 && finished[0]
+          ? `${baseName(finished[0].file.name)}.zip`
+          : `${CATEGORY_NAMES[group.category]} as ${target.label}.zip`;
+      saveBlob(await zipFiles(outputs), name);
     } finally {
       setZipping(false);
     }
@@ -86,6 +92,7 @@ export function GroupPanel({ group, jobs, prominent }: GroupPanelProps) {
         pouring={active.length > 0}
         liquid={target.category}
         size={prominent ? 'hero' : 'section'}
+        label={`${sources.length === 1 ? getFormat(sources[0] as FormatId).label : CATEGORY_NAMES[group.category]} to ${target.label}`}
       />
 
       <div className="mt-10 space-y-7">

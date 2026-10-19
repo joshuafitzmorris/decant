@@ -1,19 +1,28 @@
-import { cpSync, createReadStream, existsSync, statSync } from 'node:fs';
+import { cpSync, createReadStream, existsSync, readFileSync, statSync } from 'node:fs';
 import { extname, resolve, sep } from 'node:path';
 import type { Plugin } from 'vite';
 
 /**
- * Large runtime assets that are fetched on demand rather than bundled:
- * the ffmpeg.wasm core and pdf.js's fonts, character maps and decoders.
- * They are served from node_modules in dev and copied into `vendor/` on build,
- * so the site never has to reach a third-party CDN.
+ * Large runtime assets that are fetched on demand rather than bundled: the
+ * ffmpeg.wasm core and pdf.js's fonts, character maps and decoders. They are
+ * served from node_modules in dev and copied into `vendor/` on build, so the
+ * site never has to reach a third-party CDN. Directory names carry the package
+ * version, which lets the service worker cache them forever.
  */
+const version = (pkg: string) =>
+  (JSON.parse(readFileSync(resolve('node_modules', pkg, 'package.json'), 'utf8')) as { version: string }).version;
+
+export const VENDOR_PATHS = {
+  ffmpeg: `vendor/ffmpeg-${version('@ffmpeg/core')}/`,
+  pdfjs: `vendor/pdfjs-${version('pdfjs-dist')}/`,
+};
+
 const VENDOR_DIRS: Record<string, string> = {
-  ffmpeg: 'node_modules/@ffmpeg/core/dist/esm',
-  'pdfjs/cmaps': 'node_modules/pdfjs-dist/cmaps',
-  'pdfjs/standard_fonts': 'node_modules/pdfjs-dist/standard_fonts',
-  'pdfjs/wasm': 'node_modules/pdfjs-dist/wasm',
-  'pdfjs/iccs': 'node_modules/pdfjs-dist/iccs',
+  [VENDOR_PATHS.ffmpeg]: 'node_modules/@ffmpeg/core/dist/esm',
+  [`${VENDOR_PATHS.pdfjs}cmaps/`]: 'node_modules/pdfjs-dist/cmaps',
+  [`${VENDOR_PATHS.pdfjs}standard_fonts/`]: 'node_modules/pdfjs-dist/standard_fonts',
+  [`${VENDOR_PATHS.pdfjs}wasm/`]: 'node_modules/pdfjs-dist/wasm',
+  [`${VENDOR_PATHS.pdfjs}iccs/`]: 'node_modules/pdfjs-dist/iccs',
 };
 
 const MIME: Record<string, string> = {
@@ -33,6 +42,14 @@ export function vendorAssets(): Plugin {
 
   return {
     name: 'decant:vendor-assets',
+    config() {
+      return {
+        define: {
+          __VENDOR_FFMPEG__: JSON.stringify(VENDOR_PATHS.ffmpeg),
+          __VENDOR_PDFJS__: JSON.stringify(VENDOR_PATHS.pdfjs),
+        },
+      };
+    },
     configResolved(config) {
       root = config.root;
       outDir = resolve(config.root, config.build.outDir);
@@ -40,14 +57,13 @@ export function vendorAssets(): Plugin {
     },
     configureServer(server) {
       server.middlewares.use((req, res, next) => {
-        const pathname = (req.url ?? '').split('?')[0] ?? '';
-        const prefix = `${base}vendor/`;
-        if (!pathname.startsWith(prefix)) return next();
-        const rel = decodeURIComponent(pathname.slice(prefix.length));
-        for (const [key, dir] of Object.entries(VENDOR_DIRS)) {
-          if (!rel.startsWith(`${key}/`)) continue;
+        const pathname = decodeURIComponent((req.url ?? '').split('?')[0] ?? '');
+        if (!pathname.startsWith(`${base}vendor/`)) return next();
+        const rel = pathname.slice(base.length);
+        for (const [prefix, dir] of Object.entries(VENDOR_DIRS)) {
+          if (!rel.startsWith(prefix)) continue;
           const dirAbs = resolve(root, dir);
-          const file = resolve(dirAbs, rel.slice(key.length + 1));
+          const file = resolve(dirAbs, rel.slice(prefix.length));
           if (!file.startsWith(dirAbs + sep)) break;
           if (existsSync(file) && statSync(file).isFile()) {
             res.setHeader('Content-Type', MIME[extname(file)] ?? 'application/octet-stream');
@@ -60,8 +76,8 @@ export function vendorAssets(): Plugin {
       });
     },
     writeBundle() {
-      for (const [key, dir] of Object.entries(VENDOR_DIRS)) {
-        cpSync(resolve(root, dir), resolve(outDir, 'vendor', key), {
+      for (const [prefix, dir] of Object.entries(VENDOR_DIRS)) {
+        cpSync(resolve(root, dir), resolve(outDir, prefix), {
           recursive: true,
           filter: (src) => !src.endsWith('.map') && !src.endsWith('.d.ts'),
         });

@@ -1,5 +1,5 @@
-import { useId } from 'react';
-import { type OptionDef, type Options, type OptionValue, parseTime } from '../core/options';
+import { type ReactNode, useId } from 'react';
+import { type OptionDef, type Options, type OptionValue, parseTime, type TimeOption } from '../core/options';
 
 interface OptionsPanelProps {
   defs: OptionDef[];
@@ -9,18 +9,89 @@ interface OptionsPanelProps {
 
 export function OptionsPanel({ defs, values, onChange }: OptionsPanelProps) {
   if (defs.length === 0) return null;
+  const controls: ReactNode[] = [];
+  for (let i = 0; i < defs.length; i++) {
+    const def = defs[i] as OptionDef;
+    const next = defs[i + 1];
+    // A start and end time read best as one "Trim" control.
+    if (def.kind === 'time' && next?.kind === 'time') {
+      controls.push(<TrimControl key="trim" start={def} end={next} values={values} onChange={onChange} />);
+      i++;
+      continue;
+    }
+    controls.push(
+      <OptionControl
+        key={def.key}
+        def={def}
+        value={values[def.key] ?? def.default}
+        disabled={def.kind === 'range' && def.disabledBy ? values[def.disabledBy] === true : false}
+        onChange={(value) => onChange(def.key, value)}
+      />,
+    );
+  }
+  return <div className="flex flex-wrap items-end gap-x-8 gap-y-4">{controls}</div>;
+}
+
+interface TrimControlProps {
+  start: TimeOption;
+  end: TimeOption;
+  values: Options;
+  onChange: (key: string, value: OptionValue) => void;
+}
+
+function TrimControl({ start, end, values, onChange }: TrimControlProps) {
+  const startId = useId();
+  const endId = useId();
   return (
-    <div className="flex flex-wrap items-end gap-x-8 gap-y-4">
-      {defs.map((def) => (
-        <OptionControl
-          key={def.key}
-          def={def}
-          value={values[def.key] ?? def.default}
-          disabled={def.kind === 'range' && def.disabledBy ? values[def.disabledBy] === true : false}
-          onChange={(value) => onChange(def.key, value)}
+    <fieldset>
+      <legend className="mb-1.5 text-[0.8125rem] text-ink-2" title="Leave blank to keep the whole file">
+        Trim
+      </legend>
+      <div className="flex items-center gap-2">
+        <label htmlFor={startId} className="sr-only">
+          {start.label}
+        </label>
+        <TimeInput
+          id={startId}
+          def={start}
+          value={String(values[start.key] ?? '')}
+          onChange={(v) => onChange(start.key, v)}
         />
-      ))}
-    </div>
+        <span className="text-ink-3">to</span>
+        <label htmlFor={endId} className="sr-only">
+          {end.label}
+        </label>
+        <TimeInput id={endId} def={end} value={String(values[end.key] ?? '')} onChange={(v) => onChange(end.key, v)} />
+      </div>
+    </fieldset>
+  );
+}
+
+function TimeInput({
+  id,
+  def,
+  value,
+  onChange,
+}: {
+  id: string;
+  def: TimeOption;
+  value: string;
+  onChange: (value: string) => void;
+}) {
+  const invalid = value.trim() !== '' && parseTime(value) === undefined;
+  return (
+    <input
+      id={id}
+      type="text"
+      inputMode="decimal"
+      autoComplete="off"
+      spellCheck={false}
+      placeholder={def.placeholder}
+      value={value}
+      aria-invalid={invalid}
+      onChange={(e) => onChange(e.target.value)}
+      className={`w-24 tabular ${fieldClass} ${invalid ? 'border-danger' : ''}`}
+    />
   );
 }
 
@@ -117,26 +188,12 @@ function OptionControl({ def, value, disabled, onChange }: ControlProps) {
           </div>
         </div>
       );
-    case 'time': {
-      const text = String(value);
-      const invalid = text.trim() !== '' && parseTime(text) === undefined;
+    case 'time':
       return (
         <div>
           {label}
-          <input
-            id={id}
-            type="text"
-            inputMode="decimal"
-            autoComplete="off"
-            spellCheck={false}
-            placeholder={def.placeholder}
-            value={text}
-            aria-invalid={invalid}
-            onChange={(e) => onChange(e.target.value)}
-            className={`w-24 tabular ${fieldClass} ${invalid ? 'border-danger' : ''}`}
-          />
+          <TimeInput id={id} def={def} value={String(value)} onChange={onChange} />
         </div>
       );
-    }
   }
 }

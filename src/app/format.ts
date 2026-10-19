@@ -11,8 +11,9 @@ export function formatBytes(bytes: number): string {
   return `${value < 10 ? value.toFixed(1) : Math.round(value)} ${units[unit]}`;
 }
 
-/** 412 → "0.4 s", 75_000 → "1 min 15 s" */
+/** 38 → "38 ms", 1412 → "1.4 s", 75_000 → "1 min 15 s" */
 export function formatDuration(ms: number): string {
+  if (ms < 1000) return `${Math.max(1, Math.round(ms))} ms`;
   if (ms < 10_000) return `${(ms / 1000).toFixed(1)} s`;
   if (ms < 60_000) return `${Math.round(ms / 1000)} s`;
   const minutes = Math.floor(ms / 60_000);

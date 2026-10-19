@@ -13,7 +13,8 @@ import { OUTPUT_SPECS } from './specs';
 let ffmpeg: Promise<FFmpeg> | null = null;
 let jobCounter = 0;
 
-const vendorUrl = (name: string) => new URL(`${import.meta.env.BASE_URL}vendor/ffmpeg/${name}`, location.href).href;
+const vendorUrl = (name: string) =>
+  new URL(`${import.meta.env.BASE_URL}${__VENDOR_FFMPEG__}${name}`, location.href).href;
 
 function load(onProgress: ProgressFn): Promise<FFmpeg> {
   if (!ffmpeg) {

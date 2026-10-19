@@ -129,14 +129,24 @@ function pixels(canvas: OffscreenCanvas): ImageData {
 
 const nativeSupport = new Map<string, Promise<boolean>>();
 
-/** Browsers that can't encode a type silently return a PNG instead, so probe once with a 1×1 canvas. */
+/**
+ * Browsers that can't encode a type silently return a PNG instead, so probe once
+ * with a 1×1 canvas. The canvas needs a context: Chrome never settles
+ * convertToBlob() on a context-less OffscreenCanvas. The timeout guards against
+ * any other browser doing the same.
+ */
 function supportsNativeEncode(type: string): Promise<boolean> {
   let probe = nativeSupport.get(type);
   if (!probe) {
-    probe = new OffscreenCanvas(1, 1)
-      .convertToBlob({ type })
-      .then((blob) => blob.type === type)
-      .catch(() => false);
+    const canvas = new OffscreenCanvas(1, 1);
+    canvas.getContext('2d');
+    probe = Promise.race([
+      canvas
+        .convertToBlob({ type })
+        .then((blob) => blob.type === type)
+        .catch(() => false),
+      new Promise<boolean>((resolve) => setTimeout(() => resolve(false), 2000)),
+    ]);
     nativeSupport.set(type, probe);
   }
   return probe;

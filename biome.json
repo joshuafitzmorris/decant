@@ -8,7 +8,8 @@
       "!tests/fixtures",
       "!tests/.large",
       "!test-results",
-      "!playwright-report"
+      "!playwright-report",
+      "!.claude"
     ]
   },
   "formatter": {
@@ -18,16 +19,26 @@
     "lineWidth": 120
   },
   "javascript": {
-    "formatter": { "quoteStyle": "single" }
+    "formatter": {
+      "quoteStyle": "single"
+    }
   },
   "css": {
-    "parser": { "tailwindDirectives": true }
+    "parser": {
+      "tailwindDirectives": true
+    }
   },
   "linter": {
     "enabled": true,
-    "rules": { "preset": "recommended" }
+    "rules": {
+      "preset": "recommended"
+    }
   },
   "assist": {
-    "actions": { "source": { "organizeImports": "on" } }
+    "actions": {
+      "source": {
+        "organizeImports": "on"
+      }
+    }
   }
 }

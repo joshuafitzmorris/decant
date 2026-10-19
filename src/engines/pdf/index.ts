@@ -13,7 +13,7 @@ export async function convert(request: ConvertRequest): Promise<ConvertedFile[]>
 // ---------------------------------------------------------------------------
 // Reading PDFs (pdf.js)
 
-const vendor = (path: string) => `${import.meta.env.BASE_URL}vendor/pdfjs/${path}`;
+const vendor = (path: string) => `${import.meta.env.BASE_URL}${__VENDOR_PDFJS__}${path}`;
 
 async function openPdf(file: Blob) {
   const pdfjs = await import('pdfjs-dist');
