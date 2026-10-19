@@ -54,15 +54,9 @@ export function Footer() {
           </p>
           <p>
             How does it make money? It doesn't. If it saved you some hassle,{' '}
-            {SUPPORT_URL ? (
-              <a href={SUPPORT_URL} className={inlineLink} rel="noopener">
-                buy me a coffee
-              </a>
-            ) : (
-              <a href={REPO_URL} className={inlineLink}>
-                star it on GitHub
-              </a>
-            )}
+            <a href={SUPPORT_URL} className={inlineLink} rel="noopener">
+              buy me a coffee
+            </a>
             .
           </p>
           <p className="pt-2 text-[0.8125rem] text-ink-3">

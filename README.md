@@ -17,7 +17,7 @@ Online converters turn a ten-second job into a chore: upload your file to someon
 - **Open source.** MIT licensed, so you can check every claim here against the code.
 - **Works offline.** The page, and each converter once you've used it, stay in your browser's cache.
 
-**How does it make money?** It doesn't. It's a static site with nothing to bill, so it stays free. If it saves you some hassle, star the repo.
+**How does it make money?** It doesn't. It's a static site with nothing to bill, so it stays free. If it saves you some hassle, [buy me a coffee](https://buymeacoffee.com/joshuafitzmorris) or star the repo.
 
 ## What it converts
 
