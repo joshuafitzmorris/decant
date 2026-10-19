@@ -67,11 +67,15 @@ export default defineConfig(({ command, isPreview }) => ({
       },
       workbox: {
         // Precache only the app shell; each converter is cached the first time it runs.
+        // The update code is part of the shell: a page from an old version must be able to
+        // load it after a deploy has removed that version's files from the server.
         globPatterns: [
           'index.html',
           'favicon.svg',
           'icons/*.png',
           'assets/index-*.{js,css}',
+          'assets/virtual_pwa-register-*.js',
+          'assets/workbox-window*.js',
           'assets/archivo-latin-wdth-*.woff2',
         ],
         navigateFallbackDenylist: [/\/vendor\//, /\/assets\//],

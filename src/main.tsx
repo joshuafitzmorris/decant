@@ -19,17 +19,37 @@ if (import.meta.env.PROD) {
   // A new version is applied straight away if nothing has been added yet, otherwise as
   // soon as the page is empty again, so an update can never interrupt a conversion.
   void import('virtual:pwa-register').then(({ registerSW }) => {
+    const whenIdle = (fn: () => void) => {
+      if (getState().jobs.length === 0) return fn();
+      const unsubscribe = subscribe(() => {
+        if (getState().jobs.length > 0) return;
+        unsubscribe();
+        fn();
+      });
+    };
+    const reloadWhenIdle = () => whenIdle(() => window.location.reload());
+    let requested = false;
+    const applyWhenIdle = () =>
+      whenIdle(() => {
+        if (requested) return;
+        requested = true;
+        void update();
+      });
+
     const update = registerSW({
       immediate: true,
-      onNeedRefresh() {
-        const applyWhenIdle = () => {
-          if (getState().jobs.length > 0) return false;
-          void update(true);
-          return true;
-        };
-        if (applyWhenIdle()) return;
-        const unsubscribe = subscribe(() => {
-          if (applyWhenIdle()) unsubscribe();
+      onNeedRefresh: applyWhenIdle,
+      // The new version has taken over this page, possibly from another tab.
+      onNeedReload: reloadWhenIdle,
+      onRegisteredSW(_url, registration) {
+        // A version that began installing before registration, as usually happens on the
+        // first visit after a deploy, never reaches onNeedRefresh, so watch for it here.
+        const installing = registration?.installing;
+        if (!installing || !navigator.serviceWorker.controller) return;
+        installing.addEventListener('statechange', () => {
+          if (installing.state !== 'installed') return;
+          navigator.serviceWorker.addEventListener('controllerchange', reloadWhenIdle, { once: true });
+          applyWhenIdle();
         });
       },
     });
