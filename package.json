@@ -3,9 +3,17 @@
   "private": true,
   "version": "1.0.0",
   "description": "Convert files in your browser. Nothing is uploaded.",
-  "type": "module",
+  "homepage": "https://joshuafitzmorris.github.io/decant/",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/joshuafitzmorris/decant.git"
+  },
   "license": "MIT",
   "author": "Joshua Fitz-Morris",
+  "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
   "scripts": {
     "dev": "vite",
     "build": "vite build",
@@ -15,7 +23,9 @@
     "format": "biome check --write .",
     "test": "vitest run",
     "test:e2e": "playwright test",
-    "fixtures": "node scripts/make-fixtures.mjs"
+    "fixtures": "node scripts/make-fixtures.mjs",
+    "images": "node scripts/make-images.mjs",
+    "screenshots": "node scripts/screenshots.mjs"
   },
   "dependencies": {
     "@ffmpeg/core": "^0.12.10",
