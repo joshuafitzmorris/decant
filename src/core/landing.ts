@@ -1,68 +1,128 @@
-import { type FormatId, getFormat, isFormatId } from './formats';
-import { canConvert } from './routes';
+import type { FormatId } from './formats';
+import { readableFormats } from './routes';
 
 /**
- * Popular conversions get their own URL (/decant/heic-to-jpg/) with a page
- * title search engines can match. The app itself is identical; it just opens
- * with that pair and defaults to it.
+ * Popular conversions get their own URL (/heic-to-jpg/), and every format gets
+ * a converter page (/heic-converter/), each with a title, description and
+ * guidance search engines can match. The app itself is the same on all of
+ * them; it just opens with that pair or format.
  */
 export const LANDING_PAIRS: [FormatId, FormatId][] = [
+  // Images
   ['heic', 'jpg'],
   ['heic', 'png'],
+  ['heic', 'pdf'],
   ['webp', 'png'],
   ['webp', 'jpg'],
   ['png', 'jpg'],
   ['jpg', 'png'],
   ['avif', 'jpg'],
+  ['avif', 'png'],
   ['png', 'webp'],
   ['jpg', 'webp'],
+  ['png', 'avif'],
+  ['jpg', 'avif'],
   ['png', 'ico'],
   ['svg', 'png'],
+  ['svg', 'jpg'],
   ['jpg', 'pdf'],
   ['png', 'pdf'],
-  ['pdf', 'jpg'],
-  ['pdf', 'png'],
-  ['gif', 'mp4'],
+  ['tiff', 'jpg'],
+  ['tiff', 'pdf'],
+  ['bmp', 'png'],
+  ['bmp', 'jpg'],
+  ['gif', 'png'],
+  ['webp', 'gif'],
+  ['jxl', 'jpg'],
+  ['ico', 'png'],
+  // Video
   ['mov', 'mp4'],
-  ['mp4', 'mp3'],
-  ['mp4', 'gif'],
   ['mkv', 'mp4'],
   ['webm', 'mp4'],
   ['avi', 'mp4'],
+  ['wmv', 'mp4'],
+  ['flv', 'mp4'],
+  ['ts', 'mp4'],
+  ['mpg', 'mp4'],
+  ['3gp', 'mp4'],
+  ['mp4', 'webm'],
+  ['mp4', 'mov'],
+  ['mp4', 'gif'],
+  ['mov', 'gif'],
+  ['webm', 'gif'],
+  ['gif', 'mp4'],
+  ['mp4', 'mp3'],
+  ['mov', 'mp3'],
+  ['webm', 'mp3'],
+  ['mkv', 'mp3'],
+  ['avi', 'mp3'],
+  ['mp4', 'wav'],
+  ['mp4', 'm4a'],
+  // Audio
   ['wav', 'mp3'],
   ['flac', 'mp3'],
   ['m4a', 'mp3'],
+  ['ogg', 'mp3'],
+  ['opus', 'mp3'],
+  ['wma', 'mp3'],
+  ['aiff', 'mp3'],
+  ['aac', 'mp3'],
   ['mp3', 'wav'],
+  ['flac', 'wav'],
+  ['m4a', 'wav'],
+  ['wav', 'flac'],
+  ['wav', 'm4a'],
+  ['mp3', 'm4a'],
+  ['mp3', 'ogg'],
+  // Documents
+  ['pdf', 'jpg'],
+  ['pdf', 'png'],
+  ['pdf', 'txt'],
   ['docx', 'md'],
+  ['docx', 'html'],
+  ['docx', 'txt'],
   ['md', 'html'],
+  ['html', 'md'],
+  // Ebooks
+  ['epub', 'pdf'],
+  ['epub', 'mobi'],
+  ['mobi', 'epub'],
+  ['azw3', 'epub'],
+  ['mobi', 'pdf'],
+  ['azw3', 'pdf'],
+  ['azw3', 'mobi'],
+  ['pdf', 'epub'],
+  ['docx', 'epub'],
+  ['md', 'epub'],
+  ['epub', 'txt'],
+  ['epub', 'md'],
+  ['epub', 'fb2'],
+  ['fb2', 'epub'],
+  ['fb2', 'pdf'],
+  ['fb2', 'mobi'],
+  ['mobi', 'txt'],
+  ['cbz', 'pdf'],
+  ['pdf', 'cbz'],
+  // Data
   ['csv', 'xlsx'],
   ['xlsx', 'csv'],
   ['json', 'csv'],
+  ['csv', 'json'],
+  ['xlsx', 'json'],
+  ['json', 'xlsx'],
+  ['xls', 'xlsx'],
+  ['xls', 'csv'],
+  ['ods', 'xlsx'],
+  ['tsv', 'csv'],
   ['json', 'yaml'],
+  ['yaml', 'json'],
+  ['xml', 'json'],
+  ['json', 'xml'],
+  ['toml', 'json'],
 ];
 
-export interface LandingPair {
-  from: FormatId;
-  to: FormatId;
-}
+/** Every format Decant reads gets a converter page. */
+export const FORMAT_PAGES: FormatId[] = readableFormats();
 
 export const landingSlug = (from: FormatId, to: FormatId) => `${from}-to-${to}`;
-
-/** Reads a pair from a path like "/decant/heic-to-jpg/". */
-export function pairFromPath(pathname: string, base: string): LandingPair | null {
-  const rest = pathname.startsWith(base) ? pathname.slice(base.length) : pathname;
-  const match = /^([a-z0-9]+)-to-([a-z0-9]+)\/?$/.exec(rest.toLowerCase());
-  if (!match) return null;
-  const [, from, to] = match;
-  if (!from || !to || !isFormatId(from) || !isFormatId(to) || !canConvert(from, to)) return null;
-  return { from, to };
-}
-
-export function landingCopy(from: FormatId, to: FormatId) {
-  const source = getFormat(from);
-  const target = getFormat(to);
-  return {
-    title: `Convert ${source.label} to ${target.label} without uploading | Decant`,
-    description: `Convert ${source.label} to ${target.label} in your browser. Free, with no uploads, no queue, no ads and no sign-up. Your files never leave your device.`,
-  };
-}
+export const formatSlug = (format: FormatId) => `${format}-converter`;

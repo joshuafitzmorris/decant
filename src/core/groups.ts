@@ -12,7 +12,8 @@ const CATEGORY_TARGET_ORDER: Record<Category, FormatId[]> = {
   image: ['jpg', 'png', 'webp', 'avif', 'pdf', 'ico', 'jxl', 'gif', 'tiff', 'bmp', 'mp4', 'webm'],
   audio: ['mp3', 'wav', 'm4a', 'flac', 'ogg', 'opus', 'aac'],
   video: ['mp4', 'mp3', 'gif', 'webm', 'mov', 'mkv', 'wav', 'm4a', 'flac', 'ogg', 'opus', 'aac'],
-  document: ['md', 'html', 'txt', 'png', 'jpg', 'webp'],
+  document: ['md', 'html', 'txt', 'epub', 'png', 'jpg', 'webp', 'cbz'],
+  ebook: ['epub', 'pdf', 'mobi', 'txt', 'fb2', 'md', 'html'],
   data: ['xlsx', 'csv', 'json', 'yaml', 'tsv', 'ods', 'toml', 'xml'],
 };
 
@@ -21,6 +22,7 @@ export const CATEGORY_NOUNS: Record<Category, string> = {
   audio: 'audio',
   video: 'videos',
   document: 'documents',
+  ebook: 'ebooks',
   data: 'data',
 };
 

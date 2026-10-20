@@ -1,6 +1,10 @@
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import type { Plugin } from 'vite';
+import { FORMAT_PAGES, LANDING_PAIRS } from '../src/core/landing';
+import { pageMeta, type Route, routePath } from '../src/core/seo';
+import { llmsTxt } from './llms';
+import { structuredData } from './structured-data';
 
 /**
  * The page's Content-Security-Policy. `connect-src 'self'` is the important
@@ -60,50 +64,99 @@ export function htmlExtras({ siteUrl }: { siteUrl: string }): Plugin {
 }
 
 /**
- * Writes a copy of index.html for each popular conversion (/heic-to-jpg/) with
- * its own title and description, plus a sitemap, robots.txt and a 404 page that boots the app.
+ * Writes every page of the site, each rendered to real HTML with React on the
+ * build machine: the home page, a page per popular conversion (/heic-to-jpg/)
+ * and a page per format (/heic-converter/). Each gets its own title,
+ * description, canonical URL and schema.org data. Also writes the sitemap,
+ * robots.txt, llms.txt and a 404 page that boots the app.
+ *
+ * Runs in writeBundle, before vite-plugin-pwa fingerprints the files in closeBundle.
  */
-export function landingPages(options: {
-  siteUrl: string;
-  pairs: [string, string][];
-  copy: (from: string, to: string) => { title: string; description: string };
-}): Plugin {
+export function sitePages(options: { siteUrl: string }): Plugin {
   let outDir = 'dist';
+  let root = process.cwd();
+  let base = '/';
   return {
-    name: 'decant:landing-pages',
+    name: 'decant:site-pages',
     apply: 'build',
     configResolved(config) {
       outDir = resolve(config.root, config.build.outDir);
+      root = config.root;
+      base = config.base;
     },
-    writeBundle() {
-      const index = readFileSync(resolve(outDir, 'index.html'), 'utf8');
-      const urls = [options.siteUrl];
-      for (const [from, to] of options.pairs) {
-        const slug = `${from}-to-${to}`;
-        const url = `${options.siteUrl}${slug}/`;
-        const { title, description } = options.copy(from, to);
-        const html = index
-          .replace(/<title>[^<]*<\/title>/, `<title>${escapeHtml(title)}</title>`)
-          .replace(/(<meta\s+name="description"\s+content=")[^"]*(")/, `$1${escapeHtml(description)}$2`)
-          .replace(/(<meta property="og:title" content=")[^"]*(")/, `$1${escapeHtml(title)}$2`)
-          .replace(/(<meta\s+property="og:description"\s+content=")[^"]*(")/, `$1${escapeHtml(description)}$2`)
-          .replace(/(<meta property="og:url" content=")[^"]*(")/, `$1${url}$2`)
-          .replace(/(<link rel="canonical" href=")[^"]*(")/, `$1${url}$2`);
-        mkdirSync(resolve(outDir, slug), { recursive: true });
-        writeFileSync(resolve(outDir, slug, 'index.html'), html);
-        urls.push(url);
+    async writeBundle() {
+      const template = readFileSync(resolve(outDir, 'index.html'), 'utf8');
+      const routes: Route[] = [
+        { kind: 'home' },
+        ...LANDING_PAIRS.map(([from, to]): Route => ({ kind: 'pair', from, to })),
+        ...FORMAT_PAGES.map((format): Route => ({ kind: 'format', format })),
+      ];
+      const renderer = await loadRenderer(root, base);
+      try {
+        for (const route of routes) {
+          const path = routePath(route);
+          const html = page(template, route, options.siteUrl, renderer.render(route));
+          mkdirSync(resolve(outDir, path), { recursive: true });
+          writeFileSync(resolve(outDir, path, 'index.html'), html);
+        }
+        // Unknown URLs get the home page, marked so search engines skip it.
+        const notFound = page(template, { kind: 'home' }, options.siteUrl, renderer.render({ kind: 'home' }));
+        writeFileSync(
+          resolve(outDir, '404.html'),
+          notFound.replace('</head>', '    <meta name="robots" content="noindex" />\n  </head>'),
+        );
+      } finally {
+        await renderer.close();
       }
-      writeFileSync(resolve(outDir, '404.html'), index);
-      const sitemap = `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${urls
-        .map((url) => `  <url><loc>${url}</loc></url>`)
+
+      const today = new Date().toISOString().slice(0, 10);
+      const sitemap = `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${routes
+        .map((route) => `  <url><loc>${options.siteUrl}${routePath(route)}</loc><lastmod>${today}</lastmod></url>`)
         .join('\n')}\n</urlset>\n`;
       writeFileSync(resolve(outDir, 'sitemap.xml'), sitemap);
       writeFileSync(
         resolve(outDir, 'robots.txt'),
         `User-agent: *\nAllow: /\n\nSitemap: ${options.siteUrl}sitemap.xml\n`,
       );
+      writeFileSync(resolve(outDir, 'llms.txt'), llmsTxt(options.siteUrl));
     },
   };
+}
+
+/** Fills the built index.html with one page's metadata, structured data and prerendered markup. */
+function page(template: string, route: Route, siteUrl: string, markup: string): string {
+  const url = `${siteUrl}${routePath(route)}`;
+  const { title, description } = pageMeta(route);
+  const data = structuredData(route, siteUrl)
+    .map((item) => `    <script type="application/ld+json">${JSON.stringify(item).replace(/</g, '\\u003c')}</script>`)
+    .join('\n');
+  return template
+    .replace(/<title>[^<]*<\/title>/, `<title>${escapeHtml(title)}</title>`)
+    .replace(/(<meta\s+name="description"\s+content=")[^"]*(")/, `$1${escapeHtml(description)}$2`)
+    .replace(/(<meta property="og:title" content=")[^"]*(")/, `$1${escapeHtml(title)}$2`)
+    .replace(/(<meta\s+property="og:description"\s+content=")[^"]*(")/, `$1${escapeHtml(description)}$2`)
+    .replace(/(<meta property="og:url" content=")[^"]*(")/, `$1${url}$2`)
+    .replace(/(<link rel="canonical" href=")[^"]*(")/, `$1${url}$2`)
+    .replace('</head>', `${data}\n  </head>`)
+    .replace('<div id="root"></div>', `<div id="root" data-route="${routePath(route)}">${markup}</div>`);
+}
+
+/** React's server renderer for the app, loaded through Vite so TypeScript and JSX just work. */
+async function loadRenderer(root: string, base: string) {
+  const [{ createServer }, { default: react }] = await Promise.all([import('vite'), import('@vitejs/plugin-react')]);
+  const server = await createServer({
+    configFile: false,
+    root,
+    base,
+    logLevel: 'error',
+    appType: 'custom',
+    plugins: [react()],
+    server: { middlewareMode: true, hmr: false, ws: false },
+    optimizeDeps: { noDiscovery: true, include: [] },
+    define: { __VENDOR_FFMPEG__: '""', __VENDOR_PDFJS__: '""' },
+  });
+  const entry = (await server.ssrLoadModule('/src/entry-server.tsx')) as { render: (route: Route) => string };
+  return { render: entry.render, close: () => server.close() };
 }
 
 function escapeHtml(value: string): string {

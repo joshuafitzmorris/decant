@@ -23,7 +23,7 @@ describe('routes', () => {
     for (const from of sources) {
       for (const to of targetsFor(from)) {
         expect(isFormatId(to), `${from} → ${to}`).toBe(true);
-        expect(['image', 'media', 'pdf', 'docs', 'data']).toContain(engineFor(from, to));
+        expect(['image', 'media', 'pdf', 'docs', 'ebook', 'data']).toContain(engineFor(from, to));
       }
     }
   });

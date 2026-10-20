@@ -24,6 +24,7 @@
   --liquid-audio: oklch(0.62 0.15 65);
   --liquid-video: oklch(0.56 0.19 292);
   --liquid-document: oklch(0.58 0.15 250);
+  --liquid-ebook: oklch(0.57 0.095 205);
   --liquid-data: oklch(0.6 0.13 162);
 }
 
@@ -45,6 +46,7 @@
     --liquid-audio: oklch(0.8 0.14 75);
     --liquid-video: oklch(0.7 0.16 292);
     --liquid-document: oklch(0.72 0.13 250);
+    --liquid-ebook: oklch(0.75 0.12 205);
     --liquid-data: oklch(0.75 0.13 162);
   }
 }
@@ -112,6 +114,9 @@ body {
 }
 [data-liquid="document"] {
   --liquid: var(--liquid-document);
+}
+[data-liquid="ebook"] {
+  --liquid: var(--liquid-ebook);
 }
 [data-liquid="data"] {
   --liquid: var(--liquid-data);

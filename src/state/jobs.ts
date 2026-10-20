@@ -74,9 +74,16 @@ export function subscribe(listener: () => void) {
   };
 }
 
-/** Selectors must return existing references (not new arrays) to avoid render loops. */
+/**
+ * Selectors must return existing references (not new arrays) to avoid render loops.
+ * Pages are prerendered with the empty starting state, which is also what hydration sees.
+ */
 export function useAppState<T>(selector: (s: State) => T): T {
-  return useSyncExternalStore(subscribe, () => selector(state));
+  return useSyncExternalStore(
+    subscribe,
+    () => selector(state),
+    () => selector(state),
+  );
 }
 
 function updateJob(id: string, patch: Partial<Job> | ((job: Job) => Partial<Job>)) {
@@ -318,7 +325,7 @@ function revokeOutputs(job: Job) {
 // Scheduler
 
 const controllers = new Map<string, AbortController>();
-const running: Record<EngineId, number> = { image: 0, media: 0, pdf: 0, docs: 0, data: 0 };
+const running: Record<EngineId, number> = { image: 0, media: 0, pdf: 0, docs: 0, ebook: 0, data: 0 };
 
 function pump() {
   for (const job of state.jobs) {

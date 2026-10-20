@@ -1,37 +1,49 @@
 import { useEffect, useState } from 'react';
-import { type Category, getFormat } from '../core/formats';
-import type { LandingPair } from '../core/landing';
+import { type Category, type FormatId, getFormat } from '../core/formats';
+import { targetsFor } from '../core/routes';
+import { list, pageMeta, type Route } from '../core/seo';
 import { Pour } from './Pour';
 
-const PAIRS: [string, string, Category][] = [
+type Example = [from: string, to: string, liquid: Category];
+
+const HOME_EXAMPLES: Example[] = [
   ['heic', 'jpg', 'image'],
   ['mov', 'mp4', 'video'],
   ['wav', 'mp3', 'audio'],
   ['pdf', 'png', 'image'],
+  ['mobi', 'epub', 'ebook'],
   ['xlsx', 'csv', 'data'],
   ['docx', 'md', 'document'],
   ['mkv', 'gif', 'image'],
-  ['flac', 'm4a', 'audio'],
 ];
 
-const SIZING = PAIRS.map(([from, to]): [string, string] => [`.${from}`, `.${to}`]);
+const ext = (id: FormatId) => getFormat(id).exts[0] as string;
+
+/** The examples the pour cycles through: one fixed pair, a format's common targets, or a mix. */
+function examplesFor(route: Route): Example[] {
+  if (route.kind === 'pair') return [[ext(route.from), ext(route.to), getFormat(route.to).category]];
+  if (route.kind === 'format') {
+    return targetsFor(route.format)
+      .slice(0, 6)
+      .map((to) => [ext(route.format), ext(to), getFormat(to).category]);
+  }
+  return HOME_EXAMPLES;
+}
 
 const POUR_MS = 1500;
 const HOLD_MS = 1700;
 
 interface IntroProps {
   onChoose: () => void;
-  /** Set on a landing page such as /heic-to-jpg/: show that pair instead of the rotating examples. */
-  pair?: LandingPair | null;
+  route: Route;
 }
 
-export function Intro({ onChoose, pair }: IntroProps) {
+export function Intro({ onChoose, route }: IntroProps) {
+  const examples = examplesFor(route);
   const [index, setIndex] = useState(0);
   const [fill, setFill] = useState(0);
-  const example = PAIRS[index] as [string, string, Category];
-  const [from, to, liquid] = pair
-    ? [getFormat(pair.from).exts[0] as string, getFormat(pair.to).exts[0] as string, getFormat(pair.to).category]
-    : example;
+  const [from, to, liquid] = examples[index % examples.length] as Example;
+  const cycling = examples.length > 1;
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: each new index starts the next pour.
   useEffect(() => {
@@ -40,12 +52,12 @@ export function Intro({ onChoose, pair }: IntroProps) {
       return;
     }
     const start = window.setTimeout(() => setFill(1), 350);
-    // A landing page pours its one pair and stops.
-    if (pair) return () => window.clearTimeout(start);
+    // A single conversion pours once and stops.
+    if (!cycling) return () => window.clearTimeout(start);
     const next = window.setTimeout(
       () => {
         setFill(0);
-        setIndex((i) => (i + 1) % PAIRS.length);
+        setIndex((i) => (i + 1) % examples.length);
       },
       350 + POUR_MS + HOLD_MS,
     );
@@ -53,15 +65,24 @@ export function Intro({ onChoose, pair }: IntroProps) {
       window.clearTimeout(start);
       window.clearTimeout(next);
     };
-  }, [index, pair]);
+  }, [index, cycling]);
 
-  const source = pair ? getFormat(pair.from) : null;
-  const target = pair ? getFormat(pair.to) : null;
+  const source =
+    route.kind === 'pair' ? getFormat(route.from) : route.kind === 'format' ? getFormat(route.format) : null;
+  let summary = 'Convert photos, audio, video, ebooks, documents and spreadsheets without uploading them.';
+  if (route.kind === 'pair')
+    summary = `Convert ${source?.label} files to ${getFormat(route.to).label} without uploading them.`;
+  if (route.kind === 'format') {
+    const targets = targetsFor(route.format)
+      .slice(0, 3)
+      .map((t) => getFormat(t).label);
+    summary = `Convert ${source?.label} files to ${list([...targets, 'more'])}, without uploading them.`;
+  }
 
   return (
     <section aria-labelledby="intro-title" className="pt-[clamp(2.5rem,9vh,6.5rem)] pb-16">
       <h1 id="intro-title" className="sr-only">
-        {source && target ? `Convert ${source.label} to ${target.label}` : 'Decant converts files in your browser'}
+        {pageMeta(route).heading}
       </h1>
       <Pour
         from={`.${from}`}
@@ -70,13 +91,11 @@ export function Intro({ onChoose, pair }: IntroProps) {
         pouring={fill > 0 && fill < 1}
         liquid={liquid}
         fillDuration={fill === 0 ? 1 : POUR_MS}
-        label={pair ? undefined : `For example, ${from.toUpperCase()} to ${to.toUpperCase()}`}
-        sizeFor={pair ? undefined : SIZING}
+        label={cycling ? `For example, ${from.toUpperCase()} to ${to.toUpperCase()}` : undefined}
+        sizeFor={cycling ? examples.map(([a, b]): [string, string] => [`.${a}`, `.${b}`]) : undefined}
       />
       <p className="mt-10 max-w-[34ch] text-[clamp(1.2rem,2.2vw,1.45rem)] leading-[1.4] text-ink-2 [text-wrap:pretty]">
-        {source && target
-          ? `Convert ${source.label} files to ${target.label} without uploading them. No ads, no tracking, no sign-up.`
-          : 'Convert photos, audio, video, documents and spreadsheets without uploading them. No ads, no tracking, no sign-up.'}
+        {summary} No ads, no tracking, no sign-up.
       </p>
       <div className="mt-9 flex flex-wrap items-center gap-x-5 gap-y-3">
         <button

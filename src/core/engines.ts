@@ -7,6 +7,7 @@ const loaders: Record<EngineId, () => Promise<Engine>> = {
   media: () => import('../engines/media'),
   pdf: () => import('../engines/pdf'),
   docs: () => import('../engines/docs'),
+  ebook: () => import('../engines/ebook'),
   data: () => import('../engines/data'),
 };
 
@@ -28,5 +29,7 @@ export const ENGINE_CONCURRENCY: Record<EngineId, number> = {
   media: 1,
   pdf: 1,
   docs: 2,
+  // Books are parsed on the page; one at a time keeps it responsive.
+  ebook: 1,
   data: 2,
 };

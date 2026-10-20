@@ -43,6 +43,9 @@ export function sniffHead(b: Uint8Array, ext = ''): SniffResult {
 
   if (b.length === 0) return null;
 
+  // Kindle books are Palm databases: a free-form name, then the type and creator at byte 60.
+  if (at(60, 'BOOKMOBI')) return sniffMobi(b, ext);
+
   // A byte-order mark means text, whatever follows. (UTF-16's FF FE would otherwise pass for an MP3 frame.)
   if (bytes(0, 0xef, 0xbb, 0xbf) || bytes(0, 0xff, 0xfe) || bytes(0, 0xfe, 0xff)) return sniffText(b, ext);
 
@@ -103,6 +106,15 @@ export function sniffHead(b: Uint8Array, ext = ''): SniffResult {
   return sniffText(b, ext);
 }
 
+/** KF8 (AZW3) books declare MOBI header version 8 in their first record; older ones are MOBI. */
+function sniffMobi(b: Uint8Array, ext: string): SniffResult {
+  if (ext === 'azw3' || ext === 'kf8') return 'azw3';
+  const firstRecord = readU32BE(b, 78);
+  if (firstRecord + 40 <= b.length && matchAscii(b, firstRecord + 16, 'MOBI') && readU32BE(b, firstRecord + 36) >= 8)
+    return 'azw3';
+  return 'mobi';
+}
+
 function sniffIsobmff(b: Uint8Array, ext: string): SniffResult {
   const boxSize = readU32BE(b, 0);
   const major = ascii(b, 8, 4);
@@ -151,6 +163,7 @@ function sniffText(b: Uint8Array, ext: string): SniffResult {
   const lower = text.slice(0, 1024).toLowerCase();
   if (lower.startsWith('<svg') || (lower.startsWith('<?xml') && lower.includes('<svg'))) return 'svg';
   if (lower.startsWith('<!doctype html') || lower.startsWith('<html')) return 'html';
+  if (lower.includes('<fictionbook')) return 'fb2';
   if (lower.startsWith('<?xml')) return 'xml';
   if (text.startsWith('{') || text.startsWith('[')) return 'json';
   return null;
@@ -166,17 +179,27 @@ function looksLikeText(b: Uint8Array): boolean {
   return true;
 }
 
-/** Office files are ZIP archives; the entry names tell them apart. */
+const COMIC_PAGE = /\.(jpe?g|png|gif|webp|avif|bmp)$/i;
+
+/** Office files, EPUBs and comic archives are all ZIP files; the entry names tell them apart. */
 async function detectZipContainer(file: Blob, head: Uint8Array, ext: string): Promise<FormatId | null> {
+  // EPUB and OpenDocument store their MIME type uncompressed as the first entry.
+  if (findAscii(head, 'mimetypeapplication/epub+zip', 0, 128) >= 0) return 'epub';
   if (findAscii(head, 'application/vnd.oasis.opendocument.spreadsheet', 0, head.length) >= 0) return 'ods';
   const names = await readZipEntryNames(file).catch(() => null);
   if (names) {
     if (names.some((n) => n === 'word/document.xml')) return 'docx';
     if (names.some((n) => n === 'xl/workbook.xml' || n === 'xl/workbook.bin')) return 'xlsx';
+    if (names.includes('META-INF/container.xml') && names.some((n) => n.toLowerCase().endsWith('.opf'))) return 'epub';
+    const files = names.filter((n) => !n.endsWith('/'));
+    // FictionBook is often shared zipped (.fb2.zip).
+    if (files.length === 1 && files[0]?.toLowerCase().endsWith('.fb2')) return 'fb2';
+    if (ext === 'cbz' && files.some((n) => COMIC_PAGE.test(n))) return 'cbz';
     return null;
   }
-  // Unreadable directory (e.g. ZIP64); trust the extension for Office formats.
-  if (ext === 'docx' || ext === 'xlsx' || ext === 'xlsm' || ext === 'ods') return ext === 'xlsm' ? 'xlsx' : ext;
+  // Unreadable directory (e.g. ZIP64); trust the extension.
+  if (ext === 'docx' || ext === 'xlsx' || ext === 'xlsm' || ext === 'ods' || ext === 'epub' || ext === 'cbz')
+    return ext === 'xlsm' ? 'xlsx' : ext;
   return null;
 }
 

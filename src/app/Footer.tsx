@@ -1,9 +1,9 @@
 import { CATEGORY_NAMES, type Category, FORMATS, type FormatId, getFormat } from '../core/formats';
-import { LANDING_PAIRS, landingSlug } from '../core/landing';
+import { formatSlug, LANDING_PAIRS, landingSlug } from '../core/landing';
 import { readableFormats } from '../core/routes';
 import { REPO_URL, SUPPORT_URL } from './Header';
 
-const CATEGORIES: Category[] = ['image', 'audio', 'video', 'document', 'data'];
+const CATEGORIES: Category[] = ['image', 'audio', 'video', 'document', 'ebook', 'data'];
 
 const CREDITS: [string, string][] = [
   ['Mediabunny', 'https://mediabunny.dev'],
@@ -14,6 +14,7 @@ const CREDITS: [string, string][] = [
   ['pdf-lib', 'https://pdf-lib.js.org'],
   ['SheetJS', 'https://sheetjs.com'],
   ['Mammoth', 'https://github.com/mwilliamson/mammoth.js'],
+  ['foliate-js', 'https://github.com/johnfactotum/foliate-js'],
 ];
 
 const inlineLink = 'text-ink underline decoration-rule-strong underline-offset-4 hover:decoration-ink';
@@ -83,27 +84,43 @@ export function Footer() {
                 </dt>
                 <dd className="flex flex-wrap gap-x-3 gap-y-1 text-ink-2 tabular [font-variation-settings:'wdth'_88]">
                   {FORMATS.filter((f) => f.category === category && readable.has(f.id as FormatId)).map((f) => (
-                    <span key={f.id} title={f.name}>
+                    <a
+                      key={f.id}
+                      href={`${import.meta.env.BASE_URL}${formatSlug(f.id as FormatId)}/`}
+                      title={`${f.name} converter`}
+                      className="hover:text-ink hover:underline hover:underline-offset-4"
+                    >
                       {f.label}
-                    </span>
+                    </a>
                   ))}
                 </dd>
               </div>
             ))}
           </dl>
           <h2 className="mt-10 text-[1.35rem] font-[700] [font-variation-settings:'wdth'_90]">Common conversions</h2>
-          <ul className="mt-4 flex flex-wrap gap-x-4 gap-y-1.5 text-ink-2">
-            {LANDING_PAIRS.map(([from, to]) => (
-              <li key={`${from}-${to}`}>
-                <a
-                  href={`${import.meta.env.BASE_URL}${landingSlug(from, to)}/`}
-                  className="underline decoration-rule underline-offset-4 hover:text-ink hover:decoration-ink-3"
-                >
-                  {getFormat(from).label} to {getFormat(to).label}
-                </a>
-              </li>
-            ))}
-          </ul>
+          <div className="mt-4 space-y-4">
+            {CATEGORIES.map((category) => {
+              const pairs = LANDING_PAIRS.filter(([from]) => getFormat(from).category === category);
+              if (!pairs.length) return null;
+              return (
+                <div key={category}>
+                  <h3 className="text-[0.8125rem] font-[620] text-ink-3">{CATEGORY_NAMES[category]}</h3>
+                  <ul className="mt-1.5 flex flex-wrap gap-x-4 gap-y-1.5 text-ink-2">
+                    {pairs.map(([from, to]) => (
+                      <li key={`${from}-${to}`}>
+                        <a
+                          href={`${import.meta.env.BASE_URL}${landingSlug(from, to)}/`}
+                          className="underline decoration-rule underline-offset-4 hover:text-ink hover:decoration-ink-3"
+                        >
+                          {getFormat(from).label} to {getFormat(to).label}
+                        </a>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              );
+            })}
+          </div>
         </div>
       </div>
     </footer>

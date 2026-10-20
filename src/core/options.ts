@@ -222,7 +222,7 @@ export function optionsFor(from: FormatId, to: FormatId): OptionDef[] {
     return defs;
   }
 
-  if (from === 'pdf' && target.category === 'image') {
+  if (from === 'pdf' && (target.category === 'image' || to === 'cbz')) {
     const defs: OptionDef[] = [
       {
         kind: 'select',
@@ -235,7 +235,9 @@ export function optionsFor(from: FormatId, to: FormatId): OptionDef[] {
           { value: '300', label: '300 dpi' },
         ],
       },
-      {
+    ];
+    if (to !== 'cbz') {
+      defs.push({
         kind: 'select',
         key: 'pages',
         label: 'Pages',
@@ -244,11 +246,30 @@ export function optionsFor(from: FormatId, to: FormatId): OptionDef[] {
           { value: 'all', label: 'All pages' },
           { value: 'first', label: 'First page' },
         ],
-      },
-    ];
-    const q = LOSSY_IMAGE_QUALITY[to];
+      });
+    }
+    // Comic pages are stored as JPEG.
+    const q = LOSSY_IMAGE_QUALITY[to === 'cbz' ? 'jpg' : to];
     if (q !== undefined) defs.unshift(quality(q));
     return defs;
+  }
+
+  if (source.category === 'ebook' && to === 'pdf' && from !== 'cbz') {
+    return [
+      {
+        kind: 'select',
+        key: 'page',
+        label: 'Page size',
+        default: 'a5',
+        hint: 'A5 and 6 × 9 in read like a paperback, on paper or on a tablet',
+        choices: [
+          { value: 'a5', label: 'A5' },
+          { value: '6x9', label: '6 × 9 in' },
+          { value: 'a4', label: 'A4' },
+          { value: 'letter', label: 'Letter' },
+        ],
+      },
+    ];
   }
 
   return [];

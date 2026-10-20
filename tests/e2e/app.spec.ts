@@ -110,7 +110,7 @@ test('several images can be saved as one PDF, in the order they were added', asy
 
 test('a landing page opens with its conversion and defaults to it', async ({ page }) => {
   await page.goto('./pdf-to-jpg/');
-  await expect(page).toHaveTitle('Convert PDF to JPG without uploading | Decant');
+  await expect(page).toHaveTitle('PDF to JPG converter: free, no upload | Decant');
   await expect(page.getByRole('button', { name: 'Choose PDF files' })).toBeVisible();
   await page.locator('input[type=file]').setInputFiles(fixture('sample.pdf'));
   await expect(page.getByRole('button', { name: 'JPG', exact: true })).toHaveAttribute('aria-pressed', 'true');

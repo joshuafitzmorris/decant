@@ -1,4 +1,4 @@
-export type Category = 'image' | 'audio' | 'video' | 'document' | 'data';
+export type Category = 'image' | 'audio' | 'video' | 'document' | 'ebook' | 'data';
 
 export interface Format {
   /** Stable identifier, also the default output extension. */
@@ -129,6 +129,41 @@ export const FORMATS = define([
   },
   { id: 'txt', label: 'TXT', name: 'Plain text', exts: ['txt', 'text'], mime: 'text/plain', category: 'document' },
 
+  // Ebooks
+  { id: 'epub', label: 'EPUB', name: 'EPUB ebook', exts: ['epub'], mime: 'application/epub+zip', category: 'ebook' },
+  {
+    id: 'mobi',
+    label: 'MOBI',
+    name: 'Kindle ebook (MOBI)',
+    exts: ['mobi', 'azw', 'prc'],
+    mime: 'application/x-mobipocket-ebook',
+    category: 'ebook',
+  },
+  {
+    id: 'azw3',
+    label: 'AZW3',
+    name: 'Kindle ebook (AZW3)',
+    exts: ['azw3', 'kf8'],
+    mime: 'application/vnd.amazon.ebook',
+    category: 'ebook',
+  },
+  {
+    id: 'fb2',
+    label: 'FB2',
+    name: 'FictionBook ebook',
+    exts: ['fb2'],
+    mime: 'application/x-fictionbook+xml',
+    category: 'ebook',
+  },
+  {
+    id: 'cbz',
+    label: 'CBZ',
+    name: 'Comic book archive',
+    exts: ['cbz'],
+    mime: 'application/vnd.comicbook+zip',
+    category: 'ebook',
+  },
+
   // Data
   { id: 'csv', label: 'CSV', name: 'CSV spreadsheet', exts: ['csv'], mime: 'text/csv', category: 'data' },
   {
@@ -201,5 +236,6 @@ export const CATEGORY_NAMES: Record<Category, string> = {
   audio: 'Audio',
   video: 'Video',
   document: 'Documents',
+  ebook: 'Ebooks',
   data: 'Data',
 };

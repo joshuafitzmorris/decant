@@ -1,6 +1,6 @@
 import { type FormatId, getFormat } from './formats';
 
-export type EngineId = 'image' | 'media' | 'pdf' | 'docs' | 'data';
+export type EngineId = 'image' | 'media' | 'pdf' | 'docs' | 'ebook' | 'data';
 
 const AUDIO_TARGETS = ['mp3', 'wav', 'm4a', 'flac', 'ogg', 'opus', 'aac'] as const;
 const audioTargetsFor = (from: FormatId): FormatId[] => AUDIO_TARGETS.filter((t) => t !== from);
@@ -43,11 +43,17 @@ const TARGETS: Partial<Record<FormatId, readonly FormatId[]>> = {
   mpg: ['mp4', 'mp3', 'webm', 'mov', 'mkv', 'gif', ...audioTargetsFor('mp3')],
   '3gp': ['mp4', 'mp3', 'webm', 'mov', 'mkv', 'gif', ...audioTargetsFor('mp3')],
 
-  pdf: ['png', 'jpg', 'txt', 'webp'],
-  docx: ['md', 'html', 'txt'],
-  md: ['html', 'txt'],
-  html: ['md', 'txt'],
-  txt: ['html', 'md'],
+  pdf: ['png', 'jpg', 'txt', 'epub', 'webp', 'cbz'],
+  docx: ['md', 'html', 'txt', 'epub'],
+  md: ['html', 'txt', 'epub'],
+  html: ['md', 'txt', 'epub'],
+  txt: ['html', 'md', 'epub'],
+
+  epub: ['pdf', 'mobi', 'txt', 'fb2', 'md', 'html'],
+  mobi: ['epub', 'pdf', 'txt', 'fb2', 'md', 'html'],
+  azw3: ['epub', 'mobi', 'pdf', 'txt', 'fb2', 'md', 'html'],
+  fb2: ['epub', 'mobi', 'pdf', 'txt', 'md', 'html'],
+  cbz: ['pdf'],
 
   csv: ['xlsx', 'json', 'tsv', 'ods'],
   tsv: ['xlsx', 'csv', 'json', 'ods'],
@@ -79,7 +85,10 @@ export function engineFor(from: FormatId, to: FormatId): EngineId {
     case 'video':
       return 'media';
     case 'document':
+      if (target.category === 'ebook') return 'ebook';
       return from === 'pdf' ? 'pdf' : 'docs';
+    case 'ebook':
+      return 'ebook';
     case 'data':
       return 'data';
   }

@@ -25,7 +25,7 @@ export async function convert({ file, from, to, signal, onProgress }: ConvertReq
 }
 
 /** Every source is normalised to an HTML fragment first; each target is produced from that. */
-async function toHtml(file: File, from: string, title: string): Promise<string> {
+export async function toHtml(file: File, from: string, title: string): Promise<string> {
   switch (from) {
     case 'docx': {
       const mammoth = await import('mammoth');

@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { type Category, getFormat } from '../core/formats';
-import { landingCopy, pairFromPath } from '../core/landing';
 import { readableFormats } from '../core/routes';
+import type { Route } from '../core/seo';
 import { zipFiles } from '../core/zip';
 import {
   addFiles,
@@ -12,13 +12,13 @@ import {
   type Job,
   markSaved,
   pendingJobs,
-  preferTarget,
   removeJob,
   useAppState,
 } from '../state/jobs';
 import { Footer } from './Footer';
 import { plural } from './format';
 import { GroupPanel } from './GroupPanel';
+import { Guide } from './Guide';
 import { Header } from './Header';
 import { Intro } from './Intro';
 import { DownloadIcon, Mark, PlusIcon } from './icons';
@@ -26,19 +26,12 @@ import { JobRow } from './JobRow';
 import { saveBlob } from './save';
 import { useFileIntake } from './useFileIntake';
 
-/** On a landing page such as /decant/heic-to-jpg/, open with that pair and default to it. */
-const LANDING = pairFromPath(window.location.pathname, import.meta.env.BASE_URL);
-if (LANDING) {
-  preferTarget(LANDING.from, LANDING.to);
-  // The offline copy of the page is shared by every URL, so set the title here too.
-  document.title = landingCopy(LANDING.from, LANDING.to).title;
-}
-
 const ACCEPT = readableFormats()
   .flatMap((id) => getFormat(id).exts.map((ext) => `.${ext}`))
   .join(',');
 
-export function App() {
+/** The whole app. `route` says which page it's on: home, a conversion like /heic-to-jpg/, or a format's page. */
+export function App({ route }: { route: Route }) {
   const jobs = useAppState((s) => s.jobs);
   const groups = useAppState((s) => s.groups);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -87,7 +80,7 @@ export function App() {
 
       <main>
         {empty ? (
-          <Intro onChoose={choose} pair={LANDING} />
+          <Intro onChoose={choose} route={route} />
         ) : (
           <>
             {sections.order.map((category) => {
@@ -116,6 +109,7 @@ export function App() {
         )}
       </main>
 
+      {empty && <Guide route={route} />}
       <Footer />
 
       <input

@@ -6,6 +6,7 @@
       "!dist",
       "!node_modules",
       "!tests/fixtures",
+      "!src/engines/ebook/vendor/*.js",
       "!tests/.large",
       "!test-results",
       "!playwright-report",

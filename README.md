@@ -10,7 +10,7 @@
 
 ![Three photos converted to WebP in Decant's dark theme](docs/convert-dark.png)
 
-Online converters turn a ten-second job into a chore: upload your file to someone else's server, wait in a queue, dodge the ads, hit a size limit, make an account. Decant skips all of it. It converts images, audio, video, documents and spreadsheets inside the browser tab, so your files never leave your device and most conversions finish in under a second.
+Online converters turn a ten-second job into a chore: upload your file to someone else's server, wait in a queue, dodge the ads, hit a size limit, make an account. Decant skips all of it. It converts images, audio, video, ebooks, documents and spreadsheets inside the browser tab, so your files never leave your device and most conversions finish in under a second.
 
 - **No ads, no tracking.** No analytics, no cookies, no third-party requests and no account. The page's security policy stops it from talking to any other site.
 - **No queue, no limits.** Nothing waits on a server, and the only size limit is what your device can hold.
@@ -26,10 +26,13 @@ Online converters turn a ten-second job into a chore: upload your file to someon
 | **Images** | HEIC, JPG, PNG, WebP, AVIF, JPEG XL, GIF, TIFF, BMP, ICO, SVG | JPG, PNG, WebP, AVIF, JPEG XL, GIF, TIFF, BMP, ICO, PDF |
 | **Audio** | MP3, WAV, FLAC, M4A, AAC, OGG, Opus, AIFF, WMA | MP3, WAV, FLAC, M4A, AAC, OGG, Opus |
 | **Video** | MP4, MOV, WebM, MKV, AVI, WMV, FLV, MPEG-TS, MPEG, 3GP | MP4, MOV, WebM, MKV, GIF, or any of the audio formats |
-| **Documents** | PDF, Word (DOCX), Markdown, HTML, plain text | PDF pages as PNG, JPG or WebP; PDF text; Markdown, HTML and text from the rest |
+| **Documents** | PDF, Word (DOCX), Markdown, HTML, plain text | PDF pages as PNG, JPG or WebP; PDF text; Markdown, HTML and text from the rest; EPUB from all of them |
+| **Ebooks** | EPUB, Kindle (MOBI, AZW3), FictionBook (FB2), comics (CBZ) | EPUB, MOBI, a typeset PDF, FB2, plain text, Markdown, HTML; comics as PDF and PDFs as CBZ |
 | **Data** | CSV, TSV, XLSX, XLS, ODS, JSON, YAML, TOML, XML | XLSX, ODS, CSV, TSV, JSON, YAML, TOML, XML |
 
-Animated GIFs also become MP4 or WebM. Each conversion has the settings people reach for: quality and size for images, resolution, quality and trimming for video, bitrate for audio, page resolution for PDFs.
+Animated GIFs also become MP4 or WebM. Each conversion has the settings people reach for: quality and size for images, resolution, quality and trimming for video, bitrate for audio, page resolution for PDFs, page size for books.
+
+Ebooks convert in every direction. An EPUB becomes a PDF typeset like a paperback, with a cover, chapters on new pages, page numbers and bookmarks; Kindle MOBI and AZW3 books become EPUB with their text, pictures, cover and contents; EPUB becomes MOBI for older Kindles; Word, Markdown and PDF files become EPUBs split into chapters at their headings or bookmarks. Books with DRM can't be converted, and Decant says so instead of producing garbage.
 
 Drop a mix of files and Decant groups them by kind, so twenty iPhone photos and a screenshot all become JPGs with one click. Files are identified by their contents, not their names: a HEIC photo saved as `.jpg` is still read as HEIC.
 
@@ -46,7 +49,9 @@ flowchart LR
   sniff --> pdf[pdf.js and pdf-lib]
   sniff --> docs[Mammoth, marked, Turndown]
   sniff --> data[Data worker<br/>SheetJS, YAML, TOML, XML]
-  image & media & ffmpeg & pdf & docs & data --> save[Save to disk]
+  sniff --> ebook[Ebook engine<br/>EPUB, Kindle and FB2 readers and writers]
+  ebook -. EPUB to PDF .-> typeset[Typesetting worker<br/>pdf-lib, Literata]
+  image & media & ffmpeg & pdf & docs & data & ebook & typeset --> save[Save to disk]
 ```
 
 - **Nothing loads until it's needed.** The first visit downloads about 90 KB of compressed JavaScript. Each engine (and its WebAssembly) is fetched the first time a file needs it, then cached by a service worker for offline use.
@@ -54,6 +59,7 @@ flowchart LR
 - **Older formats still work.** Files WebCodecs can't read (AVI, WMV, FLV, AIFF, WMA, or unusual codecs) fall back to ffmpeg.wasm. Its 32 MB core downloads only the first time one of those files shows up.
 - **Images use the fastest decoder available.** The browser's own codecs come first; Squoosh's WebAssembly builds of MozJPEG, libwebp, libavif, libjxl and OxiPNG fill the gaps, and libheif handles HEIC outside Safari.
 - **Heavy work stays off the main thread.** Image, media and data conversions run in Web Workers, several images at a time, and cancelling a job terminates its worker immediately.
+- **Ebooks share one model.** Every reader (EPUB, MOBI and AZW3 through [foliate-js](https://github.com/johnfactotum/foliate-js), FB2, Word, Markdown, PDF) produces the same simple book, and every writer (EPUB 3, MOBI, FB2, PDF, text) takes it, so any source reaches any target. Publisher CSS is folded into plain italics, bold and alignment on the way in, since MOBI and FB2 can't use stylesheets.
 - **Data keeps its meaning.** CSV to JSON keeps dates as written and leading zeros intact. Excel dates aren't shifted into another time zone. Word tables become proper Markdown tables.
 
 ### Privacy you can check
@@ -102,19 +108,21 @@ src/
     media/    Mediabunny worker and the ffmpeg.wasm fallback
     pdf/      pdf.js rendering and text, pdf-lib for images to PDF
     docs/     Word, Markdown, HTML and text
+    ebook/    EPUB, Kindle, FB2 and comic readers and writers; PDF typesetting
     data/     SheetJS and structured data
   lib/        worker pool
   state/      job store and scheduler
 tests/
   unit/       Vitest
   e2e/        Playwright
-  fixtures/   one small sample per readable format (scripts/make-fixtures.mjs)
+  fixtures/   one small sample per readable format (scripts/make-fixtures.mjs, scripts/make-ebook-fixtures.mjs)
 ```
 
 ## Limits
 
 - The browser tests run in Chrome and in WebKit, Safari's engine. Firefox isn't covered yet: Decant sticks to standard APIs that current Firefox also implements, but no automated test checks it there. When a browser lacks a codec, the conversion falls back to the slower ffmpeg.wasm path; in Safari that happens for FLAC, which WebKit's own decoder can't read.
 - Layout-heavy conversions such as Word to PDF aren't offered; doing them faithfully needs a full office suite.
+- Ebooks protected with DRM (most Kindle Store and Adobe-protected books) can't be converted. PDF to EPUB rebuilds the text but leaves pictures out, and scanned PDFs have no text to rebuild. AZW3 is read but not written; MOBI is written for older Kindles, and newer ones take EPUB through Send to Kindle.
 - Speed depends on your device and browser. Video re-encoding is fastest where the browser has hardware encoders; the ffmpeg.wasm fallback is much slower than native ffmpeg.
 - Very large files are bound by memory. Video outputs from inputs over 512 MB are written to the browser's private file system instead of RAM.
 
@@ -126,13 +134,14 @@ Decant is a thin layer over excellent open-source work:
 [jSquash](https://github.com/jamsinclair/jSquash) and the Squoosh codecs (Apache-2.0),
 [libheif-js](https://github.com/catdad-experiments/libheif-js) (LGPL-3.0),
 [pdf.js](https://github.com/mozilla/pdf.js) (Apache-2.0),
-[pdf-lib](https://github.com/Hopding/pdf-lib) (MIT),
+[pdf-lib](https://github.com/Hopding/pdf-lib) and [fontkit](https://github.com/Hopding/fontkit) (MIT),
+[foliate-js](https://github.com/johnfactotum/foliate-js) (MIT; its MOBI/KF8 reader is vendored unmodified),
 [SheetJS](https://sheetjs.com) (Apache-2.0),
 [Mammoth](https://github.com/mwilliamson/mammoth.js) (BSD-2-Clause),
 [marked](https://github.com/markedjs/marked) and [Turndown](https://github.com/mixmark-io/turndown) (MIT),
 [yaml](https://github.com/eemeli/yaml) (ISC), [smol-toml](https://github.com/squirrelchat/smol-toml) (BSD-3-Clause),
 [fast-xml-parser](https://github.com/NaturalIntelligence/fast-xml-parser), [fflate](https://github.com/101arrowz/fflate), [gifenc](https://github.com/mattdesl/gifenc) and [UTIF.js](https://github.com/photopea/UTIF.js) (MIT),
-and the [Archivo](https://github.com/Omnibus-Type/Archivo) typeface (OFL-1.1).
+the [Archivo](https://github.com/Omnibus-Type/Archivo) typeface and the [Literata](https://github.com/googlefonts/literata) book face (OFL-1.1).
 
 ## License
 

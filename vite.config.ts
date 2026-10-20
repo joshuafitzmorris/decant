@@ -4,9 +4,8 @@ import react from '@vitejs/plugin-react';
 import { defineConfig } from 'vite';
 import { VitePWA } from 'vite-plugin-pwa';
 import { BASE_PATH, SITE_URL } from './scripts/site.ts';
-import { htmlExtras, landingPages } from './scripts/vite-html.ts';
+import { htmlExtras, sitePages } from './scripts/vite-html.ts';
 import { vendorAssets } from './scripts/vite-vendor.ts';
-import { LANDING_PAIRS, landingCopy } from './src/core/landing.ts';
 
 const base = BASE_PATH;
 const siteUrl = SITE_URL;
@@ -18,7 +17,7 @@ export default defineConfig(({ command, isPreview }) => ({
     tailwindcss(),
     vendorAssets(),
     htmlExtras({ siteUrl }),
-    landingPages({ siteUrl, pairs: LANDING_PAIRS, copy: (from, to) => landingCopy(from as never, to as never) }),
+    sitePages({ siteUrl }),
     VitePWA({
       // Updates are applied by src/main.tsx when the page is idle, never mid-conversion.
       registerType: 'prompt',
@@ -60,6 +59,11 @@ export default defineConfig(({ command, isPreview }) => ({
               'audio/*': ['.mp3', '.wav', '.flac', '.m4a', '.aac', '.ogg', '.opus', '.aiff', '.wma'],
               'video/*': ['.mp4', '.mov', '.webm', '.mkv', '.avi', '.wmv'],
               'application/pdf': ['.pdf'],
+              'application/epub+zip': ['.epub'],
+              'application/x-mobipocket-ebook': ['.mobi', '.azw'],
+              'application/vnd.amazon.ebook': ['.azw3'],
+              'application/x-fictionbook+xml': ['.fb2'],
+              'application/vnd.comicbook+zip': ['.cbz'],
               'text/csv': ['.csv'],
             },
           },
@@ -78,11 +82,23 @@ export default defineConfig(({ command, isPreview }) => ({
           'assets/workbox-window*.js',
           'assets/archivo-latin-wdth-*.woff2',
         ],
-        navigateFallbackDenylist: [/\/vendor\//, /\/assets\//],
+        // Pages come from the network when it's there, so each URL gets its own prerendered page and
+        // a deploy shows up straight away; offline, visited pages or the cached home page stand in.
+        navigateFallback: null,
         cleanupOutdatedCaches: true,
         // Control the page on first install so the converters it loads are cached right away.
         clientsClaim: true,
         runtimeCaching: [
+          {
+            urlPattern: ({ request }) => request.mode === 'navigate',
+            handler: 'NetworkFirst',
+            options: {
+              cacheName: 'decant-pages',
+              networkTimeoutSeconds: 4,
+              expiration: { maxEntries: 40 },
+              precacheFallback: { fallbackURL: 'index.html' },
+            },
+          },
           {
             // Hashed file names never change, so cached copies are always right.
             urlPattern: ({ url }) => url.pathname.includes('/assets/'),

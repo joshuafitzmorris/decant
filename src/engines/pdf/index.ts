@@ -15,7 +15,7 @@ export async function convert(request: ConvertRequest): Promise<ConvertedFile[]>
 
 const vendor = (path: string) => `${import.meta.env.BASE_URL}${__VENDOR_PDFJS__}${path}`;
 
-async function openPdf(file: Blob) {
+export async function openPdf(file: Blob) {
   const pdfjs = await import('pdfjs-dist');
   if (!pdfjs.GlobalWorkerOptions.workerSrc) {
     pdfjs.GlobalWorkerOptions.workerSrc = (await import('pdfjs-dist/build/pdf.worker.min.mjs?url')).default;
@@ -40,7 +40,7 @@ async function openPdf(file: Blob) {
   }
 }
 
-async function pdfToImages({ file, to, options, signal, onProgress }: ConvertRequest): Promise<ConvertedFile[]> {
+export async function pdfToImages({ file, to, options, signal, onProgress }: ConvertRequest): Promise<ConvertedFile[]> {
   const pdf = await openPdf(file);
   const { encodeBitmap } = await import('../image');
   try {

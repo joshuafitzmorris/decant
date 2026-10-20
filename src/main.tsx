@@ -1,17 +1,31 @@
 import { StrictMode } from 'react';
-import { createRoot } from 'react-dom/client';
+import { createRoot, hydrateRoot } from 'react-dom/client';
 import { App } from './app/App';
+import { pageMeta, routeFromPath, routePath } from './core/seo';
 import { holdSessionLock, sweepDisk } from './lib/disk';
-import { addFiles, getState, subscribe } from './state/jobs';
+import { addFiles, getState, preferTarget, subscribe } from './state/jobs';
 import './styles/index.css';
+
+// On a page such as /heic-to-jpg/, files default to that conversion.
+const route = routeFromPath(window.location.pathname, import.meta.env.BASE_URL);
+if (route.kind === 'pair') preferTarget(route.from, route.to);
+// Offline, every URL is answered with the cached home page, so the title is set here too.
+document.title = pageMeta(route).title;
 
 const root = document.getElementById('root');
 if (root) {
-  createRoot(root).render(
+  const app = (
     <StrictMode>
-      <App />
-    </StrictMode>,
+      <App route={route} />
+    </StrictMode>
   );
+  // Built pages arrive already rendered (scripts/vite-html.ts). Offline, the cached home page can stand in
+  // for another URL; then its markup doesn't match and the app renders from scratch.
+  if (root.firstElementChild && root.dataset.route === routePath(route)) hydrateRoot(root, app);
+  else {
+    root.replaceChildren();
+    createRoot(root).render(app);
+  }
 }
 
 if (import.meta.env.PROD) {
