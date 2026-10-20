@@ -127,6 +127,7 @@ export default defineConfig(({ command, isPreview }) => ({
       '@mediabunny/flac-encoder',
       '@mediabunny/mp3-encoder',
       '@mediabunny/prores',
+      '@pdf-lib/fontkit',
       'fast-xml-parser',
       'fflate',
       'gifenc',
