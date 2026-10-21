@@ -5,6 +5,7 @@ import { cancelJob, type Job, markSaved, removeJob, retryJob } from '../state/jo
 import { describeSizeChange, formatBytes, formatDuration, plural } from './format';
 import { CheckIcon, CloseIcon, DownloadIcon, RetryIcon } from './icons';
 import { saveBlob } from './save';
+import { iconButton } from './ui';
 
 /** Formats every browser can show in an <img>, used for input thumbnails. */
 const PREVIEWABLE = new Set(['jpg', 'png', 'webp', 'gif', 'avif', 'bmp', 'ico', 'svg']);
@@ -21,7 +22,7 @@ export const JobRow = memo(function JobRow({ job, note, index = 0 }: JobRowProps
   return (
     <li
       style={{ '--delay': `${Math.min(index, 8) * 40}ms` } as CSSProperties}
-      className="row-land grid grid-cols-[2.75rem_minmax(0,1fr)_auto] items-center gap-x-4 gap-y-1 py-3.5 sm:grid-cols-[2.75rem_minmax(0,1fr)_minmax(13rem,auto)_auto]"
+      className="row-land grid grid-cols-[2.75rem_minmax(0,1fr)_auto] items-center gap-x-4 gap-y-2 py-3.5 sm:grid-cols-[2.75rem_minmax(0,1fr)_minmax(12rem,18rem)_8rem] sm:gap-x-6"
     >
       <Thumbnail job={job} />
       <div className="min-w-0">
@@ -33,7 +34,7 @@ export const JobRow = memo(function JobRow({ job, note, index = 0 }: JobRowProps
       <div className="col-span-2 col-start-2 row-start-2 min-w-0 sm:col-span-1 sm:col-start-3 sm:row-start-1">
         <Status job={job} note={note} />
       </div>
-      <div className="col-start-3 row-start-1 flex items-center justify-end gap-1 sm:col-start-4">
+      <div className="col-start-3 row-start-1 flex items-center justify-end gap-1 sm:col-start-4 sm:-mr-2">
         <RowActions job={job} />
       </div>
     </li>
@@ -57,7 +58,7 @@ function Thumbnail({ job }: { job: Job }) {
         loading="lazy"
         decoding="async"
         onError={() => setBroken(src)}
-        className="size-11 rounded-lg border border-rule bg-sunk object-cover"
+        className="size-11 rounded-field border border-rule bg-sunk object-cover"
       />
     );
   }
@@ -65,7 +66,7 @@ function Thumbnail({ job }: { job: Job }) {
     <div
       data-liquid={category ?? undefined}
       aria-hidden="true"
-      className="relative grid size-11 place-items-center overflow-hidden rounded-lg border border-rule bg-sunk text-[0.6875rem] font-[700] tracking-[0.02em] text-ink-2 [font-variation-settings:'wdth'_80]"
+      className="relative grid size-11 place-items-center overflow-hidden rounded-field border border-rule bg-sunk text-[0.6875rem] font-[700] tracking-[0.02em] text-ink-2 [font-variation-settings:'wdth'_80]"
     >
       {category && (
         <span
@@ -180,9 +181,6 @@ function timeLeft(job: Job): string | null {
   return `about ${Math.round(minutes / 60)}\u00a0h left`;
 }
 
-const iconButton =
-  'grid size-9 place-items-center rounded-lg text-ink-2 transition-colors hover:bg-sunk hover:text-ink disabled:opacity-40';
-
 function RowActions({ job }: { job: Job }) {
   const [zipping, setZipping] = useState(false);
 
@@ -214,10 +212,10 @@ function RowActions({ job }: { job: Job }) {
           type="button"
           onClick={download}
           disabled={zipping}
-          className={`pop flex h-9 items-center gap-2 rounded-lg border px-3 font-[560] transition-colors ${
+          className={`pop flex h-9 items-center gap-2 rounded-field border px-3 font-[580] transition-colors max-sm:w-9 max-sm:justify-center max-sm:px-0 ${
             saved
               ? 'border-rule text-ink-2 hover:border-ink-3 hover:text-ink'
-              : 'border-rule-strong text-ink hover:border-ink'
+              : 'border-rule-strong bg-surface text-ink hover:border-ink'
           }`}
           title={single ? single.name : `Save all ${job.outputs.length} files as a ZIP`}
         >

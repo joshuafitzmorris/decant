@@ -16,11 +16,12 @@ import {
 } from '../state/jobs';
 import { isAppleTouchDevice } from './device';
 import { plural } from './format';
-import { CheckIcon, DownloadIcon } from './icons';
+import { CheckIcon, DownloadIcon, SpinnerIcon } from './icons';
 import { JobRow } from './JobRow';
 import { OptionsPanel } from './OptionsPanel';
 import { Pour } from './Pour';
 import { saveBlob } from './save';
+import { fieldLabel, primaryButton, secondaryButton } from './ui';
 
 interface GroupPanelProps {
   group: Group;
@@ -122,31 +123,36 @@ export function GroupPanel({ group, jobs, prominent }: GroupPanelProps) {
         label={`${sources.length === 1 ? displayName(sources[0] as FormatId) : CATEGORY_NAMES[group.category]} to ${t}`}
       />
 
-      <div className="mt-10 space-y-7">
-        <fieldset>
-          <legend className="mb-2.5 text-[0.8125rem] text-ink-2">Convert to</legend>
-          <div className="flex flex-wrap gap-2">
-            {targets.map((id) => (
-              <TargetChip
-                key={id}
-                id={id}
-                selected={id === group.target}
-                onSelect={() => setTarget(group.category, id)}
-              />
-            ))}
-          </div>
-        </fieldset>
+      {/* The settings and what to do with them, as one panel. */}
+      <div className="mt-8 rounded-panel border border-rule bg-surface sm:mt-10">
+        <div className="@container space-y-5 p-4 sm:p-6">
+          <fieldset>
+            <legend className={`${fieldLabel} mb-2.5`}>Convert to</legend>
+            <div className="flex flex-wrap gap-2">
+              {targets.map((id) => (
+                <TargetChip
+                  key={id}
+                  id={id}
+                  selected={id === group.target}
+                  onSelect={() => setTarget(group.category, id)}
+                />
+              ))}
+            </div>
+          </fieldset>
 
-        <OptionsPanel
-          defs={defs}
-          values={group.options}
-          onChange={(key, value) => setOption(group.category, key, value)}
-        />
+          <OptionsPanel
+            defs={defs}
+            values={group.options}
+            onChange={(key, value) => setOption(group.category, key, value)}
+          />
+        </div>
 
-        <div className="flex flex-wrap items-center gap-3">
+        {/* On a phone the buttons widen to fill their rows, so a wrapped pair still looks deliberate. */}
+        <div className="flex flex-wrap items-center gap-3 border-t border-rule px-4 py-4 max-sm:*:grow sm:px-6">
           {active.length > 0 ? (
             <>
-              <button type="button" disabled className={primaryButton}>
+              <button type="button" disabled className={`${primaryButton} disabled:cursor-progress`}>
+                <SpinnerIcon className="animate-spin motion-reduce:animate-none" />
                 Converting{active.length > 1 ? ` ${plural(active.length, 'file')}` : ''}…
               </button>
               <button
@@ -164,7 +170,7 @@ export function GroupPanel({ group, jobs, prominent }: GroupPanelProps) {
               {pending.length === 1 ? `Convert to ${t}` : `Convert ${pending.length} files to ${t}`}
             </button>
           ) : convertible.length === 0 ? (
-            <p className="max-w-[60ch] text-ink-2 [text-wrap:pretty]">{nothingToConvert(jobs, group.target)}</p>
+            <p className="max-w-[60ch] py-1 text-ink-2 [text-wrap:pretty]">{nothingToConvert(jobs, group.target)}</p>
           ) : null}
 
           {canMerge && (
@@ -187,19 +193,21 @@ export function GroupPanel({ group, jobs, prominent }: GroupPanelProps) {
               className={`pop ${pending.length === 0 && active.length === 0 && !canMerge ? primaryButton : secondaryButton}`}
             >
               {saved ? <CheckIcon className="check-draw" /> : <DownloadIcon />}
-              {zipping
-                ? 'Zipping…'
-                : outputs.length === 1
-                  ? `Save ${outputs[0]?.name}`
-                  : active.length > 0
-                    ? `Save ${outputs.length} so far as a ZIP`
-                    : `Save all ${outputs.length} as a ZIP`}
+              <span className="min-w-0 truncate">
+                {zipping
+                  ? 'Zipping…'
+                  : outputs.length === 1
+                    ? `Save ${outputs[0]?.name}`
+                    : active.length > 0
+                      ? `Save ${outputs.length} so far as a ZIP`
+                      : `Save all ${outputs.length} as a ZIP`}
+              </span>
             </button>
           )}
         </div>
       </div>
 
-      <ul className="mt-8 divide-y divide-rule border-y border-rule">
+      <ul className="mt-6 divide-y divide-rule border-y border-rule sm:mt-8">
         {jobs.map((job, i) => (
           <JobRow key={job.id} job={job} note={noteFor(job)} index={i} />
         ))}
@@ -223,12 +231,6 @@ function nothingToConvert(jobs: Job[], target: FormatId): string {
   return `${already} Pick another format above.`;
 }
 
-// Both share a border and a duration, so a save button promoted to primary when the last file finishes fades across.
-const buttonBase =
-  'inline-flex max-w-full items-center gap-2 truncate rounded-xl border px-5 py-3 transition-[scale,opacity,background-color,border-color,color] duration-200 active:scale-[0.98]';
-const primaryButton = `${buttonBase} border-ink bg-ink font-[620] text-on-ink hover:bg-ink/88 disabled:cursor-default disabled:opacity-60`;
-const secondaryButton = `${buttonBase} border-rule-strong font-[600] text-ink hover:border-ink disabled:opacity-60`;
-
 function TargetChip({ id, selected, onSelect }: { id: FormatId; selected: boolean; onSelect: () => void }) {
   const format = getFormat(id);
   return (
@@ -237,7 +239,7 @@ function TargetChip({ id, selected, onSelect }: { id: FormatId; selected: boolea
       aria-pressed={selected}
       title={format.name}
       onClick={onSelect}
-      className={`rounded-full border px-4 py-1.5 font-[620] tracking-[0.01em] transition-[color,background-color,border-color,scale] active:scale-[0.96] [font-variation-settings:'wdth'_88] ${
+      className={`h-9 min-w-[3.25rem] rounded-field border px-3 font-[620] tracking-[0.02em] transition-[color,background-color,border-color,scale] active:scale-[0.96] [font-variation-settings:'wdth'_88] ${
         selected ? 'border-ink bg-ink text-on-ink' : 'border-rule-strong text-ink-2 hover:border-ink-3 hover:text-ink'
       }`}
     >

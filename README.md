@@ -4,7 +4,7 @@
 
 **Convert files in your browser. Nothing is uploaded.**
 
-[decant.dev](https://decant.dev/)
+[**decant.dev**](https://decant.dev/) &ensp;|&ensp; [Buy me a coffee](https://buymeacoffee.com/joshuafitzmorris)
 
 </div>
 
@@ -54,7 +54,7 @@ flowchart LR
   image & media & ffmpeg & pdf & docs & data & ebook & typeset --> save[Save to disk]
 ```
 
-- **Nothing loads until it's needed.** The first visit downloads about 90 KB of compressed JavaScript. Each engine (and its WebAssembly) is fetched the first time a file needs it, then cached by a service worker for offline use.
+- **Nothing loads until it's needed.** The first visit downloads under 100 KB of compressed JavaScript. Each engine (and its WebAssembly) is fetched the first time a file needs it, then cached by a service worker for offline use.
 - **Video and audio use your hardware.** [Mediabunny](https://mediabunny.dev) drives the browser's WebCodecs encoders and decoders, which use the GPU's media engine. When only the container changes (MOV to MP4, MKV to MP4), streams are copied without re-encoding, which takes a fraction of a second even for large files.
 - **Older formats still work.** Files WebCodecs can't read (AVI, WMV, FLV, AIFF, WMA, or unusual codecs) fall back to ffmpeg.wasm. Its 32 MB core downloads only the first time one of those files shows up.
 - **Images use the fastest decoder available.** The browser's own codecs come first; Squoosh's WebAssembly builds of MozJPEG, libwebp, libavif, libjxl and OxiPNG fill the gaps, and libheif handles HEIC outside Safari.
@@ -121,6 +121,7 @@ tests/
 ## Limits
 
 - The browser tests run in Chrome and in WebKit, Safari's engine. Firefox isn't covered yet: Decant sticks to standard APIs that current Firefox also implements, but no automated test checks it there. When a browser lacks a codec, the conversion falls back to the slower ffmpeg.wasm path; in Safari that happens for FLAC, which WebKit's own decoder can't read.
+- On iPhone and iPad, the photo picker hands websites a JPG copy of HEIC photos. To convert the original, tap ⋯ in the picker, then Options, and set Format to Current. Picking from Files always gives the original.
 - Layout-heavy conversions such as Word to PDF aren't offered; doing them faithfully needs a full office suite.
 - Ebooks protected with DRM (most Kindle Store and Adobe-protected books) can't be converted. PDF to EPUB rebuilds the text but leaves pictures out, and scanned PDFs have no text to rebuild. AZW3 is read but not written; MOBI is written for older Kindles, and newer ones take EPUB through Send to Kindle.
 - Speed depends on your device and browser. Video re-encoding is fastest where the browser has hardware encoders; the ffmpeg.wasm fallback is much slower than native ffmpeg.

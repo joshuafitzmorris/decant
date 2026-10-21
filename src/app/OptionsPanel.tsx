@@ -1,5 +1,6 @@
 import { type ReactNode, useId } from 'react';
 import { type OptionDef, type Options, type OptionValue, parseTime, type TimeOption } from '../core/options';
+import { field, fieldLabel } from './ui';
 
 interface OptionsPanelProps {
   defs: OptionDef[];
@@ -29,7 +30,12 @@ export function OptionsPanel({ defs, values, onChange }: OptionsPanelProps) {
       />,
     );
   }
-  return <div className="flex flex-wrap items-end gap-x-8 gap-y-4">{controls}</div>;
+  // One grid, so every label sits on one line and every control on the next, whatever the mix.
+  return (
+    <div className="grid grid-cols-[repeat(auto-fill,minmax(min(100%,8.5rem),1fr))] gap-x-6 gap-y-5 border-t border-rule pt-5 @xl:grid-cols-[repeat(auto-fill,minmax(11rem,1fr))]">
+      {controls}
+    </div>
+  );
 }
 
 interface TrimControlProps {
@@ -45,11 +51,12 @@ function TrimControl({ start, end, values, onChange }: TrimControlProps) {
   const startId = useId();
   const endId = useId();
   return (
-    <fieldset>
-      <legend className="mb-1.5 text-[0.8125rem] text-ink-2" title={TRIM_HINT}>
+    // Spans two tracks whenever there are two (the panel is at least 2 × 8.5rem plus a gap wide).
+    <fieldset className="min-w-0 @min-[18.5rem]:col-span-2">
+      <legend className={`${fieldLabel} mb-2`} title={TRIM_HINT}>
         Trim<span className="sr-only">. {TRIM_HINT}</span>
       </legend>
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-2.5">
         <label htmlFor={startId} className="sr-only">
           {start.label}
         </label>
@@ -59,7 +66,7 @@ function TrimControl({ start, end, values, onChange }: TrimControlProps) {
           value={String(values[start.key] ?? '')}
           onChange={(v) => onChange(start.key, v)}
         />
-        <span className="text-ink-3">to</span>
+        <span className="text-[0.8125rem] text-ink-3">to</span>
         <label htmlFor={endId} className="sr-only">
           {end.label}
         </label>
@@ -92,7 +99,7 @@ function TimeInput({
       value={value}
       aria-invalid={invalid}
       onChange={(e) => onChange(e.target.value)}
-      className={`w-24 tabular ${fieldClass} ${invalid ? 'border-danger' : ''}`}
+      className={`w-full min-w-0 tabular ${field} ${invalid ? 'border-danger hover:border-danger' : ''}`}
     />
   );
 }
@@ -104,15 +111,12 @@ interface ControlProps {
   onChange: (value: OptionValue) => void;
 }
 
-const fieldClass =
-  'rounded-[10px] border border-rule-strong bg-surface px-3 py-2 text-ink outline-none transition-colors hover:border-ink-3 focus-visible:border-ink';
-
 function OptionControl({ def, value, disabled, onChange }: ControlProps) {
   const id = useId();
   const hintId = useId();
   // Hints show on hover; screen readers get them as the control's description.
   const label = (
-    <label htmlFor={id} className="mb-1.5 block text-[0.8125rem] text-ink-2" title={def.hint}>
+    <label htmlFor={id} className={`${fieldLabel} mb-2 truncate`} title={def.hint}>
       {def.label}
     </label>
   );
@@ -126,14 +130,14 @@ function OptionControl({ def, value, disabled, onChange }: ControlProps) {
   switch (def.kind) {
     case 'select':
       return (
-        <div>
+        <div className="min-w-0">
           {label}
           <select
             id={id}
             aria-describedby={describedBy}
             value={String(value)}
             onChange={(e) => onChange(e.target.value)}
-            className={`select ${fieldClass}`}
+            className={`select w-full ${field}`}
           >
             {def.choices.map((choice) => (
               <option key={choice.value} value={choice.value}>
@@ -146,10 +150,10 @@ function OptionControl({ def, value, disabled, onChange }: ControlProps) {
       );
     case 'range':
       return (
-        <div className="w-48">
-          <div className="flex items-baseline justify-between">
+        <div className="min-w-0">
+          <div className="flex items-baseline justify-between gap-3">
             {label}
-            <output htmlFor={id} className="text-[0.8125rem] tabular text-ink">
+            <output htmlFor={id} className="text-[0.8125rem] leading-5 font-[600] tabular text-ink">
               {disabled ? '—' : String(value)}
             </output>
           </div>
@@ -157,7 +161,7 @@ function OptionControl({ def, value, disabled, onChange }: ControlProps) {
             id={id}
             aria-describedby={describedBy}
             type="range"
-            className="slider w-full"
+            className="slider h-10 w-full"
             min={def.min}
             max={def.max}
             step={def.step}
@@ -170,27 +174,30 @@ function OptionControl({ def, value, disabled, onChange }: ControlProps) {
       );
     case 'toggle':
       return (
-        <label htmlFor={id} className="flex cursor-pointer items-center gap-2.5 py-2 select-none" title={def.hint}>
-          <input
-            id={id}
-            type="checkbox"
-            checked={value === true}
-            onChange={(e) => onChange(e.target.checked)}
-            className="peer sr-only"
-          />
-          <span
-            aria-hidden="true"
-            className="relative h-5 w-9 rounded-full bg-rule-strong transition-colors peer-checked:bg-ink peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-ink after:absolute after:top-0.5 after:left-0.5 after:size-4 after:rounded-full after:bg-surface after:transition-transform peer-checked:after:translate-x-4"
-          />
-          <span className="text-ink">{def.label}</span>
-          {def.hint && <span className="text-[0.8125rem] text-ink-3">{def.hint}</span>}
+        // Laid out like the other controls, its name above and the switch where their fields are.
+        <label htmlFor={id} className="block min-w-0 cursor-pointer select-none" title={def.hint}>
+          <span className={`${fieldLabel} mb-2 truncate`}>{def.label}</span>
+          <span className="flex h-10 items-center gap-3">
+            <input
+              id={id}
+              type="checkbox"
+              checked={value === true}
+              onChange={(e) => onChange(e.target.checked)}
+              className="peer sr-only"
+            />
+            <span
+              aria-hidden="true"
+              className="relative h-6 w-10 shrink-0 rounded-full bg-rule-strong transition-colors peer-checked:bg-ink peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-ink after:absolute after:top-0.5 after:left-0.5 after:size-5 after:rounded-full after:bg-surface after:shadow-[0_1px_2px_rgb(0_0_0/0.2)] after:transition-transform peer-checked:after:translate-x-4"
+            />
+            {def.hint && <span className="text-[0.8125rem] leading-tight text-ink-3">{def.hint}</span>}
+          </span>
         </label>
       );
     case 'color':
       return (
-        <div>
+        <div className="min-w-0">
           {label}
-          <div className={`flex items-center gap-2 ${fieldClass} py-1.5`}>
+          <div className={`flex items-center gap-2.5 ${field}`}>
             <input
               id={id}
               aria-describedby={describedBy}
@@ -206,7 +213,7 @@ function OptionControl({ def, value, disabled, onChange }: ControlProps) {
       );
     case 'time':
       return (
-        <div>
+        <div className="min-w-0">
           {label}
           <TimeInput id={id} def={def} value={String(value)} onChange={onChange} />
         </div>

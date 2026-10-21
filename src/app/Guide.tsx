@@ -1,13 +1,17 @@
-import type { ReactNode } from 'react';
-import { displayName, type FormatId } from '../core/formats';
+import { displayName, type FormatId, getFormat } from '../core/formats';
 import { FORMAT_PAGES, formatSlug, LANDING_PAIRS, landingSlug } from '../core/landing';
 import { targetsFor } from '../core/routes';
 import { type Faq, FORMAT_ABOUT, formatFaq, pairAbout, pairFaq, pairSteps, type Route, siteFaq } from '../core/seo';
+import { Section } from './Section';
+import { subHeading } from './ui';
 
-const heading = "text-[1.35rem] font-[700] text-ink [font-variation-settings:'wdth'_90]";
-const inlineLink = 'text-ink underline decoration-rule-strong underline-offset-4 hover:decoration-ink';
 const landing = new Set(LANDING_PAIRS.map(([from, to]) => `${from}>${to}`));
 const href = (slug: string) => `${import.meta.env.BASE_URL}${slug}/`;
+
+/** Links to other pages, set as pills. A format without its own page is shown the same way, but quieter. */
+const pill = 'inline-flex h-9 items-center rounded-full border px-3.5 transition-colors';
+const pillLink = `${pill} border-rule-strong text-ink hover:border-ink`;
+const pillText = `${pill} border-rule text-ink-2`;
 
 /**
  * What a visitor (or a search engine) needs before converting: the steps, what
@@ -16,19 +20,9 @@ const href = (slug: string) => `${import.meta.env.BASE_URL}${slug}/`;
 export function Guide({ route }: { route: Route }) {
   if (route.kind === 'pair') return <PairGuide from={route.from} to={route.to} />;
   if (route.kind === 'format') return <FormatGuide format={route.format} />;
-  // Split across both columns: what it costs and where files go, then what it handles and who makes it.
-  const faqs = siteFaq();
-  const half = Math.ceil(faqs.length / 2);
   return (
-    <Section label="Questions">
-      <div>
-        <h2 className={heading}>Questions</h2>
-        <Questions faqs={faqs.slice(0, half)} />
-      </div>
-      {/* Drops by the heading's height so both columns start level. */}
-      <div className="md:pt-[calc(1.35rem*1.5)]">
-        <Questions faqs={faqs.slice(half)} />
-      </div>
+    <Section id="questions" title="Questions">
+      <Questions faqs={siteFaq()} />
     </Section>
   );
 }
@@ -37,46 +31,61 @@ function PairGuide({ from, to }: { from: FormatId; to: FormatId }) {
   const s = displayName(from);
   const t = displayName(to);
   const others = targetsFor(from).filter((target) => target !== to && landing.has(`${from}>${target}`));
+  const about = pairAbout(from, to);
   return (
-    <Section label={`How to convert ${s} to ${t}`}>
-      <div className="space-y-4 text-ink-2 [text-wrap:pretty]">
-        <h2 className={heading}>
-          How to convert {s} to {t}
-        </h2>
-        <ol className="list-decimal space-y-2 pl-5 marker:font-[620] marker:text-ink">
+    <>
+      <Section id="steps" title={`How to convert ${s} to ${t}`}>
+        {/* A real sequence, so it's numbered. */}
+        <ol className="grid gap-x-8 gap-y-7 sm:grid-cols-3" data-liquid={getFormat(to).category}>
           {pairSteps(from, to).map((step, i) => (
-            <li key={step} id={`step-${i + 1}`}>
-              {step}
+            <li key={step} id={`step-${i + 1}`} className="border-t border-rule-strong pt-4">
+              <span
+                aria-hidden="true"
+                className="block text-[2.5rem] leading-none font-[780] text-liquid tabular [font-variation-settings:'wdth'_78]"
+              >
+                {i + 1}
+              </span>
+              <p className="mt-3 text-ink-2 [text-wrap:pretty]">{step}</p>
             </li>
           ))}
         </ol>
-        <h2 className={`${heading} pt-6`}>
-          About {s} and {t}
-        </h2>
-        {pairAbout(from, to).map((paragraph) => (
-          <p key={paragraph}>{paragraph}</p>
-        ))}
-      </div>
-      <div>
-        <h2 className={heading}>Questions</h2>
+      </Section>
+
+      <Section id="about" title={`About ${s} and ${t}`}>
+        <div className="grid gap-x-8 gap-y-7 sm:grid-cols-2">
+          {[from, to].map((format, i) => (
+            <div key={format} data-liquid={getFormat(format).category}>
+              <h3 className={`flex items-center gap-2.5 ${subHeading}`}>
+                <span aria-hidden="true" className="size-2 rounded-full bg-liquid" />
+                {displayName(format)}
+              </h3>
+              <p className="mt-2 text-ink-2 [text-wrap:pretty]">{about[i]}</p>
+            </div>
+          ))}
+        </div>
+      </Section>
+
+      <Section id="questions" title="Questions">
         <Questions faqs={pairFaq(from, to)} />
-        <h2 className={`${heading} mt-10`}>More {s} conversions</h2>
-        <ul className="mt-4 flex flex-wrap gap-x-4 gap-y-1.5 text-ink-2">
+      </Section>
+
+      <Section id="more" title={`More ${s} conversions`}>
+        <ul className="flex flex-wrap gap-2">
           {others.map((target) => (
             <li key={target}>
-              <a href={href(landingSlug(from, target))} className={inlineLink}>
+              <a href={href(landingSlug(from, target))} className={pillLink}>
                 {s} to {displayName(target)}
               </a>
             </li>
           ))}
           <li>
-            <a href={href(formatSlug(from))} className={inlineLink}>
+            <a href={href(formatSlug(from))} className={pillLink}>
               Every {s} conversion
             </a>
           </li>
         </ul>
-      </div>
-    </Section>
+      </Section>
+    </>
   );
 }
 
@@ -85,65 +94,58 @@ function FormatGuide({ format }: { format: FormatId }) {
   // Formats this one is often converted from, for people who arrived with the other kind of file.
   const sources = FORMAT_PAGES.filter((from) => from !== format && landing.has(`${from}>${format}`));
   return (
-    <Section label={`What are ${s} files?`}>
-      <div className="space-y-4 text-ink-2 [text-wrap:pretty]">
-        <h2 className={heading}>What are {s} files?</h2>
-        <p>{FORMAT_ABOUT[format]}</p>
-        <h2 className={`${heading} pt-6`}>{s} to other formats</h2>
-        <ul className="flex flex-wrap gap-x-4 gap-y-1.5">
+    <>
+      <Section id="about" title={`What are ${s} files?`}>
+        <p className="max-w-[60ch] text-[1.0625rem] leading-relaxed text-ink-2 [text-wrap:pretty]">
+          {FORMAT_ABOUT[format]}
+        </p>
+      </Section>
+
+      <Section id="targets" title={`${s} to other formats`}>
+        <ul className="flex flex-wrap gap-2">
           {targetsFor(format).map((target) => (
             <li key={target}>
               {landing.has(`${format}>${target}`) ? (
-                <a href={href(landingSlug(format, target))} className={inlineLink}>
+                <a href={href(landingSlug(format, target))} className={pillLink}>
                   {displayName(target)}
                 </a>
               ) : (
-                displayName(target)
+                <span className={pillText}>{displayName(target)}</span>
               )}
             </li>
           ))}
         </ul>
-        {sources.length > 0 && (
-          <>
-            <h2 className={`${heading} pt-6`}>Other formats to {s}</h2>
-            <ul className="flex flex-wrap gap-x-4 gap-y-1.5">
-              {sources.map((from) => (
-                <li key={from}>
-                  <a href={href(landingSlug(from, format))} className={inlineLink}>
-                    {displayName(from)} to {s}
-                  </a>
-                </li>
-              ))}
-            </ul>
-          </>
-        )}
-      </div>
-      <div>
-        <h2 className={heading}>Questions</h2>
-        <Questions faqs={formatFaq(format)} />
-      </div>
-    </Section>
-  );
-}
+      </Section>
 
-function Section({ label, children }: { label: string; children: ReactNode }) {
-  return (
-    <section
-      aria-label={label}
-      className="mt-4 grid gap-12 border-t border-rule pt-12 pb-4 md:grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)] md:gap-16"
-    >
-      {children}
-    </section>
+      {sources.length > 0 && (
+        <Section id="sources" title={`Other formats to ${s}`}>
+          <ul className="flex flex-wrap gap-2">
+            {sources.map((from) => (
+              <li key={from}>
+                <a href={href(landingSlug(from, format))} className={pillLink}>
+                  {displayName(from)} to {s}
+                </a>
+              </li>
+            ))}
+          </ul>
+        </Section>
+      )}
+
+      <Section id="questions" title="Questions">
+        <Questions faqs={formatFaq(format)} />
+      </Section>
+    </>
   );
 }
 
 function Questions({ faqs }: { faqs: Faq[] }) {
   return (
-    <dl className="mt-5 space-y-5">
+    // Columns rather than a grid, so a long answer doesn't leave a gap beside it.
+    <dl className="gap-x-8 sm:columns-2">
       {faqs.map(({ question, answer }) => (
-        <div key={question}>
-          <dt className="font-[620] text-ink">{question}</dt>
-          <dd className="mt-1 text-ink-2 [text-wrap:pretty]">{answer}</dd>
+        <div key={question} className="mb-8 break-inside-avoid last:mb-0">
+          <dt className={`${subHeading} [text-wrap:balance]`}>{question}</dt>
+          <dd className="mt-1.5 text-ink-2 [text-wrap:pretty]">{answer}</dd>
         </div>
       ))}
     </dl>

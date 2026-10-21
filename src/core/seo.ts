@@ -11,8 +11,8 @@ import { canConvert, readableFormats, targetsFor } from './routes';
 export const FORMAT_ABOUT: Record<FormatId, string> = {
   jpg: 'JPG (JPEG) is the most widely supported photo format. Its lossy compression keeps photos small at the cost of a little detail.',
   png: 'PNG is a lossless image format with transparency, the usual choice for screenshots, logos and graphics with sharp edges.',
-  webp: 'WebP is Google’s image format for the web. It makes smaller files than JPG or PNG at the same quality and supports transparency, but some older apps can’t open it.',
-  avif: 'AVIF is a modern image format based on the AV1 video codec. Its files are much smaller than JPG at the same quality, but older software may not open them.',
+  webp: 'WebP is Google’s image format for the web: smaller than JPG or PNG at the same quality, with transparency. Some older apps can’t open it.',
+  avif: 'AVIF is a modern image format built on the AV1 video codec. Files are much smaller than JPG at the same quality, but older software may not open them.',
   heic: 'HEIC (HEIF) is the format iPhones and iPads save photos in. It’s about half the size of a JPG, but Windows, Android and many websites can’t open it.',
   gif: 'GIF is the classic format for short animations and simple graphics. It allows only 256 colours per frame, so photos look grainy and animations get large.',
   jxl: 'JPEG XL is a newer image format that compresses better than JPG and can repack existing JPGs without loss. Few browsers and apps support it yet.',
@@ -78,9 +78,9 @@ const PAIR_NOTES: Partial<Record<string, string>> = {
   'mp4>gif': 'Pick a width and frame rate, and trim to the part you want: GIFs grow quickly with length.',
   'gif>mp4': 'An MP4 is usually a fraction of the size of the GIF, and plays everywhere a GIF does.',
   'pdf>jpg':
-    'Every page becomes its own JPG, and you save them together as a ZIP. Pick the resolution: 150 dpi suits screens, 300 dpi suits printing.',
+    'Each page becomes its own JPG, and they’re saved together as a ZIP. 150 dpi suits screens, and 300 dpi suits printing.',
   'pdf>png':
-    'Every page becomes its own PNG, and you save them together as a ZIP. Pick the resolution: 150 dpi suits screens, 300 dpi suits printing.',
+    'Each page becomes its own PNG, and they’re saved together as a ZIP. 150 dpi suits screens, and 300 dpi suits printing.',
   'epub>pdf':
     'The book is typeset like a paperback, with the cover, a title page, chapters starting on new pages, page numbers and bookmarks for each chapter.',
   'pdf>epub':
@@ -111,28 +111,28 @@ const CATEGORY_LIST: Category[] = ['image', 'audio', 'video', 'document', 'ebook
 const categoryWords = 'images, audio, video, documents, ebooks and spreadsheets';
 
 const SEVERAL_AT_ONCE =
-  'Yes. Add as many as you like and they convert together. You can save each result on its own, or all of them as one ZIP.';
+  'Yes. Add as many as you like and they convert together. Save each result on its own, or all of them as one ZIP.';
 
 export function siteFaq(): Faq[] {
   return [
     {
       question: 'Is Decant free?',
       answer:
-        'Yes. It has no ads and no paid tier, you don’t need an account, and you can convert as many files as you like. The code is open source under the MIT licence.',
+        'Yes. There are no ads, no paid tier, no account and no limit on how many files you convert. The code is open source under the MIT licence.',
     },
     {
       question: 'Are my files uploaded anywhere?',
       answer:
-        'No. Decant converts files inside your browser tab. The page’s security policy only allows connections back to decant.dev itself, so the browser blocks any attempt to send your files elsewhere.',
+        'No. Everything happens inside your browser tab. The page’s security policy only allows connections back to decant.dev, so the browser would block any attempt to send your files elsewhere.',
     },
     {
       question: 'Is there a file size limit?',
       answer:
-        'Only your device’s memory. Decant sets no limit of its own, and it writes very large videos to the browser’s private storage instead of holding them in memory.',
+        'Only your device’s memory. Very large videos are written to the browser’s private storage instead of being held in memory.',
     },
     {
       question: 'Does Decant work offline?',
-      answer: 'Yes. Once the page has loaded, the converters you’ve used keep working without a connection.',
+      answer: 'Yes. Once the page has loaded, any converter you’ve used keeps working without a connection.',
     },
     {
       question: 'Which formats can Decant convert?',
@@ -141,17 +141,17 @@ export function siteFaq(): Faq[] {
     {
       question: 'Can Decant convert Kindle books?',
       answer:
-        'Yes. DRM-free MOBI and AZW3 books convert to EPUB, PDF and more, and EPUB converts to MOBI for older Kindles. Books bought with DRM from the Kindle Store can’t be converted.',
+        'Yes. DRM-free MOBI and AZW3 books convert to EPUB, PDF and more, and EPUB converts to MOBI for older Kindles. Books with Kindle Store DRM can’t be converted.',
     },
     {
       question: 'Which browsers does Decant work in?',
       answer:
-        'Current versions of Chrome, Edge and Safari. It’s tested in Chrome and in WebKit, Safari’s engine, and Edge shares Chrome’s engine. Firefox supports the same web standards, but Decant isn’t tested there yet.',
+        'Current versions of Chrome, Edge and Safari, including Safari on iPhone. It’s tested in Chrome and in WebKit, Safari’s engine, and Edge shares Chrome’s engine. Firefox isn’t tested yet.',
     },
     {
       question: 'Who makes Decant, and how does it make money?',
       answer:
-        'Joshua Fitz-Morris, a software engineer in Vancouver, and its code is on GitHub. It doesn’t make money. It’s a static site with no servers to pay for, so it can stay free. If it saved you some hassle, you can buy him a coffee.',
+        'Joshua Fitz-Morris, a software engineer in Vancouver. The code is on GitHub. It doesn’t make money: it’s a static site with no servers to pay for, so it stays free. If you find it useful, you can buy him a coffee.',
     },
   ];
 }
@@ -162,11 +162,11 @@ export function pairFaq(from: FormatId, to: FormatId): Faq[] {
   const faqs: Faq[] = [
     {
       question: `How do I convert ${s} to ${t}?`,
-      answer: `Choose your ${s} files or drop them on this page, check that ${t} is selected, then select Convert and save the result. It works the same way on a phone or a computer.`,
+      answer: `Choose your ${s} files or drop them on this page, check that ${t} is selected, then select Convert and save the result. It works the same on a phone or a computer.`,
     },
     {
       question: `Is it safe to convert ${s} to ${t} here?`,
-      answer: `Yes. The conversion runs in your browser, so your ${s} files are never uploaded to a server, and nothing is stored or logged.`,
+      answer: `Yes. The conversion runs in your browser, so your ${s} files are never uploaded, stored or logged.`,
     },
   ];
   const note = PAIR_NOTES[`${from}>${to}`];
@@ -181,11 +181,11 @@ export function formatFaq(format: FormatId): Faq[] {
   return [
     {
       question: `How do I convert ${s} files?`,
-      answer: `Choose your ${s} files or drop them on this page, pick the format you need (${list(targets)}), then select Convert and save the results.`,
+      answer: `Choose your ${s} files or drop them on this page, pick a format (${list(targets)}), then select Convert and save the results.`,
     },
     {
       question: `Is it safe to convert ${s} files here?`,
-      answer: `Yes. Decant converts ${s} files in your browser, so they’re never uploaded to a server, and nothing is stored or logged.`,
+      answer: `Yes. Decant converts ${s} files in your browser, so they’re never uploaded, stored or logged.`,
     },
     { question: `Can I convert many ${s} files at once?`, answer: SEVERAL_AT_ONCE },
   ];

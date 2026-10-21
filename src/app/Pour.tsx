@@ -1,5 +1,6 @@
-import { type CSSProperties, useLayoutEffect, useRef, useState } from 'react';
+import type { CSSProperties } from 'react';
 import type { Category } from '../core/formats';
+import { lineEms } from './vessel';
 
 interface PourProps {
   /** Source label, e.g. ".heic", or "images" for a mix of formats. */
@@ -23,7 +24,7 @@ interface PourProps {
 }
 
 const MAX_SIZE = { hero: 168, section: 92 };
-const REFERENCE = 100;
+const MIN_SIZE = 24;
 
 /**
  * The page's centrepiece: ".heic → .jpg" set as large as the column allows.
@@ -43,30 +44,11 @@ export function Pour({
   label,
   sizeFor,
 }: PourProps) {
-  const frame = useRef<HTMLDivElement>(null);
-  const ruler = useRef<HTMLDivElement>(null);
-  const [fontSize, setFontSize] = useState<number | null>(null);
+  // Fit the line to the column, capped so it never shouts on wide screens. The width comes from the
+  // font's metrics (./vessel), so the size is pure CSS and is already right in the server-rendered page.
   const candidates = sizeFor ?? [[from, to]];
-  const sizingKey = candidates.map((pair) => pair.join('>')).join('|');
-
-  // Fit the line to the column width, capped so it never shouts on wide screens.
-  // biome-ignore lint/correctness/useExhaustiveDependencies: re-measure when the labels being sized change.
-  useLayoutEffect(() => {
-    const frameEl = frame.current;
-    const rulerEl = ruler.current;
-    if (!frameEl || !rulerEl) return;
-    const measure = () => {
-      const natural = Math.max(0, ...Array.from(rulerEl.children, (row) => (row as HTMLElement).scrollWidth));
-      if (!natural) return;
-      const fitted = Math.floor((frameEl.clientWidth / natural) * REFERENCE * 0.99);
-      setFontSize(Math.max(24, Math.min(MAX_SIZE[size], fitted)));
-    };
-    measure();
-    const observer = new ResizeObserver(measure);
-    observer.observe(frameEl);
-    void document.fonts?.ready.then(measure);
-    return () => observer.disconnect();
-  }, [sizingKey, size]);
+  const ems = Math.max(...candidates.map(([a, b]) => lineEms(a, b)));
+  const fontSize = `clamp(${MIN_SIZE}px, ${(99 / ems).toFixed(3)}cqi, ${MAX_SIZE[size]}px)`;
 
   const fillStyle = {
     '--fill': Math.max(0, Math.min(1, fill)),
@@ -74,14 +56,12 @@ export function Pour({
   } as CSSProperties;
 
   return (
-    <div ref={frame} className={`relative w-full ${animate ? 'pour-animate' : ''}`} data-liquid={liquid}>
+    <div className={`vessel-frame relative w-full ${animate ? 'pour-animate' : ''}`} data-liquid={liquid}>
       <div
         role="img"
         aria-label={label ?? `${from.replace('.', '').toUpperCase()} to ${to.replace('.', '').toUpperCase()}`}
         className="vessel flex items-center gap-[0.12em] select-none"
-        style={{
-          fontSize: fontSize ?? (size === 'hero' ? 'clamp(3.25rem, 12vw, 10.5rem)' : 'clamp(2.5rem, 8vw, 5.75rem)'),
-        }}
+        style={{ fontSize }}
       >
         {/* Keyed so a new label mounts fresh and plays its arrival. */}
         <span key={from} className="vessel-from">
@@ -93,24 +73,6 @@ export function Pour({
             {to}
           </span>
         </span>
-      </div>
-      {/* Invisible copies at a reference size, used only for measuring. */}
-      <div
-        ref={ruler}
-        aria-hidden="true"
-        className="pointer-events-none invisible absolute top-0 left-0 h-0 w-0 overflow-hidden"
-      >
-        {candidates.map(([a, b]) => (
-          <div
-            key={`${a}>${b}`}
-            className="vessel flex w-max items-center gap-[0.12em]"
-            style={{ fontSize: REFERENCE }}
-          >
-            <span>{a}</span>
-            <Stream active={false} />
-            <span className="vessel-empty">{b}</span>
-          </div>
-        ))}
       </div>
     </div>
   );

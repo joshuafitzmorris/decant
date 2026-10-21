@@ -20,11 +20,12 @@ import { Footer } from './Footer';
 import { plural } from './format';
 import { GroupPanel } from './GroupPanel';
 import { Guide } from './Guide';
-import { Header } from './Header';
+import { Header, SUPPORT_URL } from './Header';
 import { Intro } from './Intro';
-import { DownloadIcon, Mark, PlusIcon } from './icons';
+import { CupIcon, DownloadIcon, Mark, PlusIcon } from './icons';
 import { JobRow } from './JobRow';
 import { saveBlob } from './save';
+import { inlineLink, quietButton } from './ui';
 import { useFileIntake } from './useFileIntake';
 import { useTabTitle } from './useTabTitle';
 
@@ -93,7 +94,7 @@ export function App({ route }: { route: Route }) {
     <div className="mx-auto w-full max-w-[72rem] px-[clamp(1.25rem,5vw,4rem)]">
       <Header />
 
-      <main ref={mainRef} tabIndex={-1} className="outline-none">
+      <main ref={mainRef} tabIndex={-1} className={`outline-none ${empty ? '' : 'pb-20 sm:pb-28'}`}>
         {empty ? (
           <Intro onChoose={choose} route={route} missing={missing} />
         ) : (
@@ -111,7 +112,7 @@ export function App({ route }: { route: Route }) {
               );
             })}
             {sections.others.length > 0 && (
-              <section aria-label="Other files" className="pt-14">
+              <section aria-label="Other files" className="pt-12">
                 <ul className="divide-y divide-rule border-y border-rule">
                   {sections.others.map((job, i) => (
                     <JobRow key={job.id} job={job} index={i} />
@@ -184,51 +185,71 @@ function SessionBar({ jobs, groupCount, onAdd }: { jobs: Job[]; groupCount: numb
   const pending = Object.values(groups).reduce((sum, group) => sum + (group ? pendingJobs(jobs, group).length : 0), 0);
   const unreadable = jobs.filter((j) => j.status === 'unsupported');
 
+  // A quiet thank-you once everything converted has been saved; never before, and never in the way.
+  const allSaved = outputs.length > 0 && outputs.every((o) => o.saved) && pending === 0 && !jobs.some(isBusy);
+
   return (
-    <div className="mt-10 flex flex-wrap items-center gap-x-6 gap-y-3 text-ink-2">
-      <button type="button" onClick={onAdd} className="inline-flex items-center gap-2 font-[560] hover:text-ink">
-        <PlusIcon /> Add files
-      </button>
-      {groupCount > 1 && pending > 0 && (
-        <button type="button" onClick={convertAll} className="font-[560] hover:text-ink">
-          Convert all {plural(pending, 'file')}
+    <>
+      <div className="-mx-3 mt-4 flex flex-wrap items-center gap-x-1 gap-y-1">
+        <button type="button" onClick={onAdd} className={quietButton}>
+          <PlusIcon /> Add files
         </button>
-      )}
-      {groupsWithOutputs > 1 && (
-        <button
-          type="button"
-          disabled={zipping}
-          onClick={async () => {
-            setZipping(true);
-            try {
-              saveBlob(await zipFiles(outputs), 'decant.zip');
-              markSaved(outputs);
-            } finally {
-              setZipping(false);
-            }
-          }}
-          className="inline-flex items-center gap-2 font-[560] hover:text-ink"
-        >
-          <DownloadIcon /> {zipping ? 'Zipping…' : `Save all ${outputs.length} as a ZIP`}
+        {groupCount > 1 && pending > 0 && (
+          <button type="button" onClick={convertAll} className={quietButton}>
+            Convert all {plural(pending, 'file')}
+          </button>
+        )}
+        {groupsWithOutputs > 1 && (
+          <button
+            type="button"
+            disabled={zipping}
+            onClick={async () => {
+              setZipping(true);
+              try {
+                saveBlob(await zipFiles(outputs), 'decant.zip');
+                markSaved(outputs);
+              } finally {
+                setZipping(false);
+              }
+            }}
+            className={quietButton}
+          >
+            <DownloadIcon /> {zipping ? 'Zipping…' : `Save all ${outputs.length} as a ZIP`}
+          </button>
+        )}
+        {unreadable.length > 0 && (
+          <button
+            type="button"
+            onClick={() => {
+              for (const j of unreadable) removeJob(j.id);
+            }}
+            className={quietButton}
+          >
+            Remove unsupported files
+          </button>
+        )}
+        <button type="button" onClick={clearAll} className={`${quietButton} sm:ml-auto`}>
+          Start over
         </button>
+      </div>
+      {allSaved && (
+        <p className="status-in mt-6 flex items-start gap-2.5 text-ink-2 [text-wrap:pretty]">
+          <CupIcon className="mt-[0.2rem] shrink-0" />
+          <span>
+            All saved. If that helped, you can{' '}
+            <a href={SUPPORT_URL} target="_blank" rel="noopener" className={inlineLink}>
+              buy me a coffee
+              <span className="sr-only"> (opens in a new tab)</span>
+            </a>
+            .
+          </span>
+        </p>
       )}
-      {unreadable.length > 0 && (
-        <button
-          type="button"
-          onClick={() => {
-            for (const j of unreadable) removeJob(j.id);
-          }}
-          className="font-[560] hover:text-ink"
-        >
-          Remove unsupported files
-        </button>
-      )}
-      <button type="button" onClick={clearAll} className="font-[560] hover:text-ink sm:ml-auto">
-        Start over
-      </button>
-    </div>
+    </>
   );
 }
+
+const isBusy = (job: Job) => job.status === 'working' || job.status === 'queued' || job.status === 'detecting';
 
 function DropOverlay() {
   return (

@@ -20,6 +20,8 @@
   --on-ink: #f2f4f3;
   --danger: #b4351f;
   --glint: rgb(255 255 255 / 0.5);
+  /* The coffee in the support link's cup: the only liquid that isn't a kind of file. */
+  --coffee: oklch(0.52 0.1 55);
 
   --liquid-image: oklch(0.62 0.19 12);
   --liquid-audio: oklch(0.62 0.15 65);
@@ -43,6 +45,7 @@
     --on-ink: #0d1311;
     --danger: #ff8a70;
     --glint: rgb(255 255 255 / 0.35);
+    --coffee: oklch(0.72 0.1 65);
 
     --liquid-image: oklch(0.72 0.17 12);
     --liquid-audio: oklch(0.8 0.14 75);
@@ -66,6 +69,11 @@
   --color-on-ink: var(--on-ink);
   --color-danger: var(--danger);
   --color-liquid: var(--liquid);
+  --color-coffee: var(--coffee);
+
+  --radius-field: 0.625rem;
+  --radius-button: 0.75rem;
+  --radius-panel: 1.25rem;
 }
 
 @property --fill {
@@ -129,6 +137,17 @@ body {
 
 .tabular {
   font-variant-numeric: tabular-nums;
+}
+
+/*
+ * The pour line is sized from its column's width (container units) and the
+ * font's metrics, so it needs no measuring after the page loads. Until the
+ * font arrives a wider fallback could overhang the column; clip it sideways
+ * rather than let the page scroll.
+ */
+.vessel-frame {
+  container-type: inline-size;
+  overflow-x: clip;
 }
 
 /* ---------------------------------------------------------------------------
@@ -379,8 +398,19 @@ body {
     mark-swirl 1.6s ease-in-out 900ms infinite alternate;
 }
 
+/* The support link's cup fills up while it's pointed at. */
+.cup-coffee {
+  transition: translate 600ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+a:hover .cup-coffee,
+a:focus-visible .cup-coffee {
+  translate: 0 -2.5px;
+}
+
 @media (prefers-reduced-motion: reduce) {
-  .vessel-fill {
+  .vessel-fill,
+  .cup-coffee {
     transition: none;
   }
   .pour-stream,
@@ -405,7 +435,8 @@ body {
 input[type="range"].slider {
   appearance: none;
   background: transparent;
-  height: 1.5rem;
+  /* As tall as the fields beside it, so the track lines up with their centres. */
+  height: 2.5rem;
   cursor: pointer;
 }
 input[type="range"].slider::-webkit-slider-runnable-track {
@@ -420,20 +451,20 @@ input[type="range"].slider::-moz-range-track {
 }
 input[type="range"].slider::-webkit-slider-thumb {
   appearance: none;
-  width: 14px;
-  height: 14px;
-  margin-top: -6px;
+  width: 16px;
+  height: 16px;
+  margin-top: -7px;
   border-radius: 50%;
   background: var(--ink);
-  border: 2px solid var(--paper);
+  border: 2px solid var(--surface);
   box-shadow: 0 0 0 1px var(--ink);
 }
 input[type="range"].slider::-moz-range-thumb {
-  width: 10px;
-  height: 10px;
+  width: 12px;
+  height: 12px;
   border-radius: 50%;
   background: var(--ink);
-  border: 2px solid var(--paper);
+  border: 2px solid var(--surface);
   box-shadow: 0 0 0 1px var(--ink);
 }
 input[type="range"].slider:disabled {
