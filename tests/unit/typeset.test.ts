@@ -304,7 +304,7 @@ describe('typeset', () => {
     const result = typeset(book, { page: 'a5' }, fonts);
     await expect(result).rejects.toBeInstanceOf(ConversionError);
     await expect(result).rejects.toThrow(
-      "This book uses characters the PDF font can't show, such as Chinese or Arabic. Convert it to EPUB or HTML instead.",
+      'This book uses characters the PDF font can’t show, such as Chinese or Arabic. Convert it to EPUB or HTML instead.',
     );
   });
 });

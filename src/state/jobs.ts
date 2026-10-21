@@ -156,9 +156,12 @@ export function addFiles(files: File[]) {
             return { jobs, groups: { ...s.groups, [category]: { ...existing, options } } };
           }
           // Until the person chooses, default to the preferred or most popular target for the whole mix.
+          // The page's own target also stands when every file is already in it (an iPhone hands over JPG
+          // copies of HEIC photos), so the page says so instead of quietly switching to another format.
           const available = groupTargets(category, sources);
           const preferred = preferredTargets[category];
-          const target = (preferred && available.includes(preferred) ? preferred : available[0]) as FormatId;
+          const keep = preferred && (available.includes(preferred) || sources.every((from) => from === preferred));
+          const target = (keep ? preferred : available[0]) as FormatId;
           const options =
             existing && existing.target === target
               ? { ...groupDefaultOptions(sources, target), ...existing.options }
@@ -413,11 +416,11 @@ function describeError(error: unknown): string {
     /dynamically imported module|Importing a module script failed|error loading dynamically|Failed to fetch/i;
   if ((crashed && !navigator.onLine) || missingCode.test(detail)) {
     return navigator.onLine
-      ? "This converter couldn't be loaded. Reload the page and try again."
-      : "You're offline, and this converter hasn't been used on this device yet. Connect once to download it.";
+      ? 'This converter couldn’t be loaded. Reload the page and try again.'
+      : 'You’re offline, and this converter hasn’t been downloaded to this device yet. Connect to the internet and try again.';
   }
   if (/memory|allocation|out of bounds|RangeError/i.test(detail)) {
-    return 'This file is too large for the browser to convert in one go.';
+    return 'The browser ran out of memory converting this file. Closing other tabs may help.';
   }
-  return "Something went wrong while converting this file. It may be damaged, or use a variant Decant can't handle.";
+  return 'Decant couldn’t convert this file. It may be damaged, or use a variant Decant can’t read.';
 }

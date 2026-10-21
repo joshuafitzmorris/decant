@@ -39,13 +39,15 @@ interface TrimControlProps {
   onChange: (key: string, value: OptionValue) => void;
 }
 
+const TRIM_HINT = 'Leave blank to keep the whole file.';
+
 function TrimControl({ start, end, values, onChange }: TrimControlProps) {
   const startId = useId();
   const endId = useId();
   return (
     <fieldset>
-      <legend className="mb-1.5 text-[0.8125rem] text-ink-2" title="Leave blank to keep the whole file">
-        Trim
+      <legend className="mb-1.5 text-[0.8125rem] text-ink-2" title={TRIM_HINT}>
+        Trim<span className="sr-only">. {TRIM_HINT}</span>
       </legend>
       <div className="flex items-center gap-2">
         <label htmlFor={startId} className="sr-only">
@@ -107,10 +109,18 @@ const fieldClass =
 
 function OptionControl({ def, value, disabled, onChange }: ControlProps) {
   const id = useId();
+  const hintId = useId();
+  // Hints show on hover; screen readers get them as the control's description.
   const label = (
     <label htmlFor={id} className="mb-1.5 block text-[0.8125rem] text-ink-2" title={def.hint}>
       {def.label}
     </label>
+  );
+  const describedBy = def.hint ? hintId : undefined;
+  const hint = def.hint && (
+    <span id={hintId} className="sr-only">
+      {def.hint}
+    </span>
   );
 
   switch (def.kind) {
@@ -120,6 +130,7 @@ function OptionControl({ def, value, disabled, onChange }: ControlProps) {
           {label}
           <select
             id={id}
+            aria-describedby={describedBy}
             value={String(value)}
             onChange={(e) => onChange(e.target.value)}
             className={`select ${fieldClass}`}
@@ -130,6 +141,7 @@ function OptionControl({ def, value, disabled, onChange }: ControlProps) {
               </option>
             ))}
           </select>
+          {hint}
         </div>
       );
     case 'range':
@@ -143,6 +155,7 @@ function OptionControl({ def, value, disabled, onChange }: ControlProps) {
           </div>
           <input
             id={id}
+            aria-describedby={describedBy}
             type="range"
             className="slider w-full"
             min={def.min}
@@ -152,6 +165,7 @@ function OptionControl({ def, value, disabled, onChange }: ControlProps) {
             disabled={disabled}
             onChange={(e) => onChange(Number(e.target.value))}
           />
+          {hint}
         </div>
       );
     case 'toggle':
@@ -179,6 +193,7 @@ function OptionControl({ def, value, disabled, onChange }: ControlProps) {
           <div className={`flex items-center gap-2 ${fieldClass} py-1.5`}>
             <input
               id={id}
+              aria-describedby={describedBy}
               type="color"
               value={String(value)}
               onChange={(e) => onChange(e.target.value)}
@@ -186,6 +201,7 @@ function OptionControl({ def, value, disabled, onChange }: ControlProps) {
             />
             <span className="tabular text-ink-2 uppercase">{String(value)}</span>
           </div>
+          {hint}
         </div>
       );
     case 'time':

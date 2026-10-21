@@ -65,7 +65,7 @@ const imageSize: SelectOption = {
   key: 'size',
   label: 'Size',
   default: 'original',
-  hint: 'Longest side. Photos are never enlarged; SVGs are drawn at this size',
+  hint: 'Sets the longest side. Photos are never enlarged, and SVGs are drawn at this size.',
   choices: [
     { value: 'original', label: 'Original' },
     { value: '3840', label: 'Up to 3840 px' },
@@ -97,7 +97,7 @@ const bitrate = (choices: number[]): SelectOption => ({
   kind: 'select',
   key: 'bitrate',
   label: 'Bitrate',
-  hint: 'Auto keeps the original audio when it can, and otherwise picks a high-quality bitrate',
+  hint: 'Auto keeps the original audio when it can, and otherwise uses a high-quality bitrate.',
   default: 'auto',
   choices: [
     { value: 'auto', label: 'Auto' },
@@ -123,11 +123,17 @@ export function optionsFor(from: FormatId, to: FormatId): OptionDef[] {
         key: 'background',
         label: 'Background',
         default: '#ffffff',
-        hint: 'Fills transparent areas',
+        hint: 'Fills areas that were transparent, since this format can’t store transparency.',
       });
     }
     if (to === 'png') {
-      defs.push({ kind: 'toggle', key: 'optimize', label: 'Smaller file', hint: 'Slower, lossless', default: false });
+      defs.push({
+        kind: 'toggle',
+        key: 'optimize',
+        label: 'Smaller file',
+        hint: 'Lossless, but slower',
+        default: false,
+      });
     }
     return defs;
   }
@@ -140,7 +146,7 @@ export function optionsFor(from: FormatId, to: FormatId): OptionDef[] {
         label: 'Page',
         default: 'image',
         choices: [
-          { value: 'image', label: 'Match image' },
+          { value: 'image', label: 'Fit to image' },
           { value: 'a4', label: 'A4' },
           { value: 'letter', label: 'Letter' },
         ],
@@ -198,7 +204,7 @@ export function optionsFor(from: FormatId, to: FormatId): OptionDef[] {
         key: 'quality',
         label: 'Quality',
         default: 'auto',
-        hint: 'Auto copies the video untouched when it can, which is near-instant',
+        hint: 'Auto copies the video untouched when it can, which is near-instant.',
         choices: [
           { value: 'auto', label: 'Auto' },
           { value: 'very-high', label: 'Very high' },
@@ -261,7 +267,7 @@ export function optionsFor(from: FormatId, to: FormatId): OptionDef[] {
         key: 'page',
         label: 'Page size',
         default: 'a5',
-        hint: 'A5 and 6 × 9 in read like a paperback, on paper or on a tablet',
+        hint: 'A5 and 6 × 9 in read like a paperback, printed or on a tablet.',
         choices: [
           { value: 'a5', label: 'A5' },
           { value: '6x9', label: '6 × 9 in' },

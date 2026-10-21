@@ -33,7 +33,7 @@ test('a mixed drop of photos converts to one format, skipping files already in i
   await expect(page.getByRole('img', { name: 'Images to JPG' })).toBeVisible();
   await expect(page.getByText('Already JPG')).toBeVisible();
   await page.getByRole('button', { name: 'Convert 2 files to JPG' }).click();
-  await expect(page.getByRole('button', { name: 'Save all 2 as ZIP' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Save all 2 as a ZIP' })).toBeVisible();
   const file = await saveResult(page);
   expect(Object.keys(unzipSync(file.bytes))).toEqual(['sample.jpg', 'sample (2).jpg']);
 });
@@ -45,7 +45,7 @@ test('files the app cannot read are explained, not silently dropped', async ({ p
     mimeType: 'application/zip',
     buffer: Buffer.from([0x50, 0x4b, 0x03, 0x04, 0, 0, 0, 0]),
   });
-  await expect(page.getByText("Decant can't convert this kind of file.")).toBeVisible();
+  await expect(page.getByText('Decant can’t convert this kind of file.')).toBeVisible();
 });
 
 test('a damaged file fails with a clear message and can be retried or removed', async ({ page }) => {
@@ -56,7 +56,7 @@ test('a damaged file fails with a clear message and can be retried or removed', 
     buffer: Buffer.from([0xff, 0xd8, 0xff, 0xe0, 1, 2, 3, 4, 5, 6]),
   });
   await page.getByRole('button', { name: /^Convert to/ }).click();
-  await expect(page.getByRole('alert')).toContainText("couldn't be read");
+  await expect(page.getByRole('alert')).toContainText('couldn’t be read');
   await expect(page.getByRole('button', { name: 'Try again' })).toBeVisible();
   await page.getByRole('button', { name: 'Remove broken.jpg' }).click();
   await expect(page.getByRole('button', { name: 'Choose files' })).toBeVisible();
@@ -68,7 +68,7 @@ test('changing settings after converting offers to convert again', async ({ page
   await page.getByRole('button', { name: 'Convert to JPG' }).click();
   await expect(page.getByRole('button', { name: 'Save sample.jpg' }).first()).toBeVisible();
   await page.getByLabel('Size').selectOption('512');
-  await expect(page.getByText('Settings changed since')).toBeVisible();
+  await expect(page.getByText('Made with earlier settings')).toBeVisible();
   await expect(page.getByRole('button', { name: 'Convert to JPG' })).toBeVisible();
 });
 
@@ -114,6 +114,25 @@ test('a landing page opens with its conversion and defaults to it', async ({ pag
   await expect(page.getByRole('button', { name: 'Choose PDF files' })).toBeVisible();
   await page.locator('input[type=file]').setInputFiles(fixture('sample.pdf'));
   await expect(page.getByRole('button', { name: 'JPG', exact: true })).toHaveAttribute('aria-pressed', 'true');
+});
+
+test('a landing page keeps its target when the file is already in it', async ({ page }) => {
+  // An iPhone's photo picker hands over JPG copies of HEIC photos, even on this page.
+  await page.goto('./heic-to-jpg/');
+  await page.locator('input[type=file]').setInputFiles(fixture('sample.jpg'));
+  await expect(page.getByText('This file is already JPG. Pick another format above.')).toBeVisible();
+  await expect(page.getByText('Already JPG', { exact: true })).toBeVisible();
+  await expect(page.getByRole('button', { name: /^Convert/ })).toHaveCount(0);
+});
+
+test('phones and tablets get a file picker that shows every file', async ({ page }) => {
+  await page.goto('./');
+  const input = page.locator('input[type=file]');
+  await expect(input).toHaveAttribute('accept', /\.heic/);
+  // Touch pickers grey out every type they don't know; an iPhone's hides Kindle books, FB2, CBZ and MKV.
+  await page.addInitScript(() => Object.defineProperty(Navigator.prototype, 'maxTouchPoints', { get: () => 5 }));
+  await page.reload();
+  await expect.poll(() => input.getAttribute('accept')).toBeNull();
 });
 
 test('leaving with unsaved results asks first; saving them stops the prompt', async ({ page }) => {

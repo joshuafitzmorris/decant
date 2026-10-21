@@ -7,7 +7,7 @@ import { mkdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { chromium } from '@playwright/test';
 
-const url = process.env.DECANT_URL ?? 'http://localhost:4174/decant/';
+const url = process.env.DECANT_URL ?? 'http://localhost:4174/';
 const root = join(import.meta.dirname, '..');
 const fixture = (name) => join(root, 'tests', 'fixtures', name);
 const out = join(root, 'docs');
@@ -30,6 +30,8 @@ async function shot(name, { width, height, colorScheme = 'light', files, target,
     await page.getByRole('button', { name: target, exact: true }).first().click();
     await page.getByRole('button', { name: /^Convert .*to / }).click();
     await page.getByRole('button', { name: /^Save/ }).first().waitFor();
+    // The save button appears where Convert was; move off it so it isn't caught mid-hover.
+    await page.mouse.move(0, 0);
     await page.waitForTimeout(600);
   }
   await page.screenshot({ path: join(out, name), clip: crop ?? { x: 0, y: 0, width, height } });

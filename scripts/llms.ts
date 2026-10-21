@@ -1,4 +1,4 @@
-import { getFormat } from '../src/core/formats';
+import { displayName } from '../src/core/formats';
 import { formatSlug, LANDING_PAIRS, landingSlug } from '../src/core/landing';
 import { targetsFor } from '../src/core/routes';
 import { categoryName, conversionCount, formatCount, readableByCategory, siteFaq } from '../src/core/seo';
@@ -30,21 +30,17 @@ export function llmsTxt(siteUrl: string): string {
     '',
   ];
   for (const [category, formats] of readableByCategory()) {
-    const links = formats.map((f) => `[${getFormat(f).label}](${siteUrl}${formatSlug(f)}/)`);
+    const links = formats.map((f) => `[${displayName(f)}](${siteUrl}${formatSlug(f)}/)`);
     lines.push(`- ${categoryName(category)}: ${links.join(', ')}`);
   }
   lines.push('', '## Popular conversions', '');
   for (const [from, to] of LANDING_PAIRS) {
-    lines.push(`- [${getFormat(from).label} to ${getFormat(to).label}](${siteUrl}${landingSlug(from, to)}/)`);
+    lines.push(`- [${displayName(from)} to ${displayName(to)}](${siteUrl}${landingSlug(from, to)}/)`);
   }
   lines.push('', '## Every conversion', '');
   for (const [, formats] of readableByCategory()) {
     for (const from of formats) {
-      lines.push(
-        `- ${getFormat(from).label} to ${targetsFor(from)
-          .map((t) => getFormat(t).label)
-          .join(', ')}`,
-      );
+      lines.push(`- ${displayName(from)} to ${targetsFor(from).map(displayName).join(', ')}`);
     }
   }
   lines.push('', '## Questions', '');

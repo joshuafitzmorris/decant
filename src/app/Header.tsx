@@ -2,6 +2,8 @@ import { Mark } from './icons';
 
 export const REPO_URL = 'https://github.com/joshuafitzmorris/decant';
 export const SUPPORT_URL = 'https://buymeacoffee.com/joshuafitzmorris';
+export const AUTHOR_URL = 'https://joshuafitzmorris.github.io';
+export const AUTHOR_GITHUB_URL = 'https://github.com/joshuafitzmorris';
 
 export function Header() {
   return (

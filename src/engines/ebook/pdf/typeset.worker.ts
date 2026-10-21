@@ -26,7 +26,7 @@ function loadFonts(): Promise<BookFonts> {
 async function font(style: string): Promise<Uint8Array> {
   const response = await fetch(`${FONTS}Literata-${style}.ttf`).catch(() => null);
   if (!response?.ok) {
-    throw new ConversionError("The book font couldn't be loaded. Check your connection and try again.", 'network');
+    throw new ConversionError('The book font couldn’t be loaded. Check your connection and try again.', 'network');
   }
   return new Uint8Array(await response.arrayBuffer());
 }

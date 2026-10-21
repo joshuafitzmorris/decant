@@ -9,6 +9,10 @@ interface PourProps {
   /** 0 to 1: how full the target vessel is. */
   fill: number;
   pouring: boolean;
+  /** Every file is converted: the moment the full glass catches the light. */
+  done?: boolean;
+  /** Let a new source or target settle in. Off for the first render of a page, so it never delays the first paint. */
+  animate?: boolean;
   liquid: Category;
   size?: 'hero' | 'section';
   /** Overrides the fill transition, e.g. for the slower demo pour. */
@@ -23,10 +27,22 @@ const REFERENCE = 100;
 
 /**
  * The page's centrepiece: ".heic → .jpg" set as large as the column allows.
- * The target extension is an outline that fills with its category's colour as
- * the conversion progresses.
+ * The target extension starts as pale glass and fills with its category's
+ * colour as the conversion progresses.
  */
-export function Pour({ from, to, fill, pouring, liquid, size = 'hero', fillDuration, label, sizeFor }: PourProps) {
+export function Pour({
+  from,
+  to,
+  fill,
+  pouring,
+  done = false,
+  animate = false,
+  liquid,
+  size = 'hero',
+  fillDuration,
+  label,
+  sizeFor,
+}: PourProps) {
   const frame = useRef<HTMLDivElement>(null);
   const ruler = useRef<HTMLDivElement>(null);
   const [fontSize, setFontSize] = useState<number | null>(null);
@@ -58,7 +74,7 @@ export function Pour({ from, to, fill, pouring, liquid, size = 'hero', fillDurat
   } as CSSProperties;
 
   return (
-    <div ref={frame} className="relative w-full" data-liquid={liquid}>
+    <div ref={frame} className={`relative w-full ${animate ? 'pour-animate' : ''}`} data-liquid={liquid}>
       <div
         role="img"
         aria-label={label ?? `${from.replace('.', '').toUpperCase()} to ${to.replace('.', '').toUpperCase()}`}
@@ -67,10 +83,15 @@ export function Pour({ from, to, fill, pouring, liquid, size = 'hero', fillDurat
           fontSize: fontSize ?? (size === 'hero' ? 'clamp(3.25rem, 12vw, 10.5rem)' : 'clamp(2.5rem, 8vw, 5.75rem)'),
         }}
       >
-        <span>{from}</span>
+        {/* Keyed so a new label mounts fresh and plays its arrival. */}
+        <span key={from} className="vessel-from">
+          {from}
+        </span>
         <Stream active={pouring} />
-        <span className="vessel-fill" style={fillStyle} data-full={fill >= 1}>
-          {to}
+        <span key={to} className="vessel-slot flex">
+          <span className="vessel-fill" style={fillStyle} data-pouring={pouring} data-done={done && fill >= 1}>
+            {to}
+          </span>
         </span>
       </div>
       {/* Invisible copies at a reference size, used only for measuring. */}

@@ -62,7 +62,7 @@ export async function rasterizeSvg(file: Blob, options: Options): Promise<ImageB
   const doc = new DOMParser().parseFromString(await file.text(), 'image/svg+xml');
   const svg = doc.documentElement;
   if (svg.nodeName.toLowerCase() !== 'svg' || doc.getElementsByTagName('parsererror').length > 0) {
-    throw new ConversionError("This SVG couldn't be read. Check that it's a valid SVG file.");
+    throw new ConversionError('This SVG couldn’t be read. Check that it’s a valid SVG file.');
   }
 
   const viewBox = (svg.getAttribute('viewBox') ?? '')
@@ -90,7 +90,7 @@ export async function rasterizeSvg(file: Blob, options: Options): Promise<ImageB
   const outWidth = Math.max(1, Math.round(width * scale));
   const outHeight = Math.max(1, Math.round(height * scale));
   if (outWidth * outHeight > 16384 * 16384)
-    throw new ConversionError('That size is too large to render. Pick a smaller width.');
+    throw new ConversionError('That size is too large to draw. Pick a smaller one.');
 
   if (viewBox.length !== 4) svg.setAttribute('viewBox', `0 0 ${width} ${height}`);
   svg.setAttribute('width', String(outWidth));
@@ -102,13 +102,13 @@ export async function rasterizeSvg(file: Blob, options: Options): Promise<ImageB
     const image = new Image(outWidth, outHeight);
     image.src = url;
     await image.decode().catch(() => {
-      throw new ConversionError("This SVG couldn't be drawn. It may rely on features browsers block in images.");
+      throw new ConversionError('This SVG couldn’t be drawn. It may rely on features browsers block in images.');
     });
     const canvas = document.createElement('canvas');
     canvas.width = outWidth;
     canvas.height = outHeight;
     const ctx = canvas.getContext('2d');
-    if (!ctx) throw new ConversionError('This browser could not allocate an image canvas.');
+    if (!ctx) throw new ConversionError('The browser couldn’t make room for an image this large. Pick a smaller size.');
     ctx.drawImage(image, 0, 0, outWidth, outHeight);
     return await createImageBitmap(canvas);
   } finally {

@@ -5,7 +5,7 @@ import { flattenStyles } from './styles';
 import type { MobiBook, MobiTocItem } from './vendor/foliate-mobi.js';
 
 const DRM_MESSAGE =
-  "This Kindle book is protected with DRM, so it can't be converted. Only DRM-free books, such as those from Project Gutenberg or your own documents, can be converted.";
+  'This Kindle book is protected with DRM, so Decant can’t convert it. Books without DRM, such as those from Project Gutenberg or your own documents, convert normally.';
 const NONE = 0xffffffff;
 
 /** Reads MOBI and KF8 (AZW3) books with foliate-js's parser, which Decant wraps for conversion. */
@@ -16,7 +16,7 @@ export async function readMobi(file: Blob): Promise<Book> {
   try {
     book = await new MOBI({ unzlib: unzlibSync }).open(file);
   } catch {
-    throw new ConversionError("This Kindle book couldn't be opened. It may be damaged.");
+    throw new ConversionError('This Kindle book couldn’t be opened. It may be damaged.');
   }
   try {
     // Combined MOBI/KF8 files have a second header for the KF8 half.
@@ -30,7 +30,7 @@ export async function readMobi(file: Blob): Promise<Book> {
 /** PalmDOC's encryption field is non-zero for Amazon's DRM; decrypting it isn't something Decant does. */
 async function checkDrm(file: Blob) {
   const head = new DataView(await file.slice(0, 96).arrayBuffer());
-  if (head.byteLength < 82) throw new ConversionError("This Kindle book couldn't be opened. It may be damaged.");
+  if (head.byteLength < 82) throw new ConversionError('This Kindle book couldn’t be opened. It may be damaged.');
   const firstRecord = head.getUint32(78);
   const record = new DataView(await file.slice(firstRecord, firstRecord + 16).arrayBuffer());
   if (record.byteLength >= 14 && record.getUint16(12) !== 0) throw new ConversionError(DRM_MESSAGE, 'drm');

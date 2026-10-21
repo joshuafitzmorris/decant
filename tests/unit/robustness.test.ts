@@ -75,6 +75,7 @@ describe('formatDuration', () => {
     [119_600, '2 min'],
     [75_000, '1 min 15 s'],
   ])('%i ms → %s', (ms, text) => {
-    expect(formatDuration(ms)).toBe(text);
+    // Numbers are joined to their units with a no-break space.
+    expect(formatDuration(ms).replaceAll('\u00a0', ' ')).toBe(text);
   });
 });

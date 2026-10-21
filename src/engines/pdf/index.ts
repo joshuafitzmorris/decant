@@ -36,7 +36,7 @@ export async function openPdf(file: Blob) {
     if (name === 'PasswordException') {
       throw new ConversionError('This PDF is password-protected. Remove the password and try again.', 'password');
     }
-    throw new ConversionError("This PDF couldn't be opened. It may be damaged.", 'invalid');
+    throw new ConversionError('This PDF couldn’t be opened. It may be damaged.', 'invalid');
   }
 }
 
@@ -60,7 +60,7 @@ export async function pdfToImages({ file, to, options, signal, onProgress }: Con
       canvas.height = Math.max(1, Math.floor(viewport.height));
       if (canvas.width * canvas.height > (16384 * 16384) / 2) {
         throw new ConversionError(
-          'These pages are too large to render at that resolution. Pick a lower one.',
+          'These pages are too large to draw at that resolution. Pick a lower one.',
           'too-large',
         );
       }
@@ -118,7 +118,7 @@ async function pdfToText({ file, signal, onProgress }: ConvertRequest): Promise<
       .trim();
     if (!text) {
       throw new ConversionError(
-        'This PDF has no selectable text. It is probably a scan; convert it to PNG or JPG instead.',
+        'This PDF has no selectable text, probably because it’s a scan. Convert it to PNG or JPG instead.',
         'no-text',
       );
     }
@@ -184,7 +184,7 @@ export async function imagesToPdf(
       orientation = 1;
     }
     const image = await (kind === 'jpg' ? doc.embedJpg(bytes) : doc.embedPng(bytes)).catch(() => {
-      throw new ConversionError("One of the images couldn't be added to the PDF. It may be damaged.");
+      throw new ConversionError('One of the images couldn’t be added to the PDF. It may be damaged.');
     });
 
     // Phones store portrait photos as landscape pixels plus an EXIF rotation, which PDF viewers ignore.

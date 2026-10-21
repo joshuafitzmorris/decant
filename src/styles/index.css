@@ -19,6 +19,7 @@
   --rule-strong: rgb(15 26 23 / 0.2);
   --on-ink: #f2f4f3;
   --danger: #b4351f;
+  --glint: rgb(255 255 255 / 0.5);
 
   --liquid-image: oklch(0.62 0.19 12);
   --liquid-audio: oklch(0.62 0.15 65);
@@ -41,6 +42,7 @@
     --rule-strong: rgb(228 235 232 / 0.2);
     --on-ink: #0d1311;
     --danger: #ff8a70;
+    --glint: rgb(255 255 255 / 0.35);
 
     --liquid-image: oklch(0.72 0.17 12);
     --liquid-audio: oklch(0.8 0.14 75);
@@ -96,10 +98,13 @@ body {
   background: color-mix(in oklch, var(--liquid, var(--liquid-document)) 35%, transparent);
 }
 
-:focus-visible {
-  outline: 2px solid var(--ink);
-  outline-offset: 3px;
-  border-radius: 6px;
+/* In the base layer so a control's own rounding wins; outlines follow it. */
+@layer base {
+  :focus-visible {
+    outline: 2px solid var(--ink);
+    outline-offset: 3px;
+    border-radius: 6px;
+  }
 }
 
 /* Category liquids, set on any container */
@@ -130,10 +135,11 @@ body {
  * The vessel: a file extension set large. The target starts as a pale, empty
  * glass and fills with its liquid from the bottom up. (A text-stroke outline
  * would expose the variable font's overlapping contours, so the empty state is
- * a translucent fill instead.)
+ * a pale fill instead. It's mixed with the page colour rather than made
+ * translucent so the surface ripple below can paint "empty" over liquid.)
  */
 .vessel {
-  --ghost: color-mix(in oklch, var(--ink) 13%, transparent);
+  --ghost: color-mix(in srgb, var(--ink) 13%, var(--paper));
   font-weight: 780;
   font-variation-settings: "wdth" 78;
   letter-spacing: -0.035em;
@@ -155,6 +161,76 @@ body {
   padding-block: 0.12em;
   margin-block: -0.12em;
   transition: --fill 420ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/*
+ * While a conversion runs, the liquid's surface ripples: rows of small crests
+ * (liquid) and troughs (empty glass) drift along the fill line. The box is
+ * 1.1em tall (0.86em line plus 0.12em padding each side), so the line sits
+ * (1 - fill) × 1.1em from the top.
+ */
+.vessel-fill[data-pouring="true"] {
+  --wave: 0.36em;
+  background-image:
+    radial-gradient(0.09em 0.03em at 25% 50%, var(--liquid) 90%, transparent),
+    radial-gradient(0.09em 0.03em at 75% 50%, var(--ghost) 90%, transparent),
+    linear-gradient(to top, var(--liquid) calc(var(--fill) * 100%), var(--ghost) calc(var(--fill) * 100%));
+  background-size:
+    var(--wave) 0.06em,
+    var(--wave) 0.06em,
+    100% 100%;
+  background-repeat: repeat-x, repeat-x, no-repeat;
+  background-position:
+    0 calc((1 - var(--fill)) * 1.1em - 0.03em),
+    0 calc((1 - var(--fill)) * 1.1em - 0.03em),
+    0 0;
+  animation: ripple 1.4s linear infinite;
+}
+
+@keyframes ripple {
+  to {
+    background-position-x: var(--wave), var(--wave), 0;
+  }
+}
+
+/* The moment a whole group is converted: light runs across the full glass once. */
+.vessel-fill[data-done="true"] {
+  background-image:
+    linear-gradient(105deg, transparent 38%, var(--glint) 50%, transparent 62%),
+    linear-gradient(to top, var(--liquid) calc(var(--fill) * 100%), var(--ghost) calc(var(--fill) * 100%));
+  background-size:
+    250% 100%,
+    100% 100%;
+  background-repeat: no-repeat;
+  background-position:
+    120% 0,
+    0 0;
+  animation: glint 1s cubic-bezier(0.3, 0.6, 0.3, 1) 380ms both;
+}
+
+@keyframes glint {
+  to {
+    background-position:
+      -20% 0,
+      0 0;
+  }
+}
+
+/* A new source or target settles into place. */
+@keyframes arrive {
+  from {
+    opacity: 0;
+    translate: 0 0.08em;
+  }
+}
+
+.pour-animate .vessel-from,
+.pour-animate .vessel-slot {
+  animation: arrive 360ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.pour-animate .vessel-slot {
+  animation-delay: 70ms;
 }
 
 .vessel-empty {
@@ -198,12 +274,129 @@ body {
   animation: slosh 1.6s cubic-bezier(0.45, 0, 0.55, 1) infinite;
 }
 
+/* ---------------------------------------------------------------------------
+ * Small responses to what the person does. Each starts from a `from` keyframe,
+ * so with motion turned off everything simply appears in its final state.
+ */
+
+/* Files dropping into the list, a few at a time, each band filling with its liquid. */
+@keyframes land {
+  from {
+    opacity: 0;
+    translate: 0 -0.35rem;
+  }
+}
+
+@keyframes band {
+  from {
+    scale: 0 1;
+  }
+}
+
+.row-land {
+  animation: land 300ms cubic-bezier(0.22, 1, 0.36, 1) var(--delay, 0ms) both;
+}
+
+.row-land .band {
+  transform-origin: left;
+  animation: band 560ms cubic-bezier(0.22, 1, 0.36, 1) calc(var(--delay, 0ms) + 120ms) both;
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+}
+
+.status-in {
+  animation: fade-in 240ms ease-out both;
+}
+
+/* A failed conversion shakes its head once. */
+@keyframes nudge {
+  20%,
+  60% {
+    translate: -2px 0;
+  }
+  40%,
+  80% {
+    translate: 2px 0;
+  }
+}
+
+.nudge {
+  animation:
+    fade-in 160ms ease-out both,
+    nudge 340ms ease-in-out 60ms;
+}
+
+/* A save button appearing, or a result that's been saved. */
+@keyframes pop {
+  from {
+    opacity: 0;
+    scale: 0.94;
+  }
+}
+
+.pop {
+  animation: pop 300ms cubic-bezier(0.2, 0.9, 0.3, 1.15) both;
+}
+
+@keyframes draw {
+  from {
+    stroke-dashoffset: 14;
+  }
+}
+
+.check-draw path {
+  stroke-dasharray: 14;
+  animation: draw 360ms cubic-bezier(0.3, 0.6, 0.3, 1) 40ms both;
+}
+
+/* Holding files over the page fills the mark, as if pouring them in. */
+.drop-overlay {
+  animation: fade-in 140ms ease-out both;
+}
+
+@keyframes mark-fill {
+  from {
+    translate: 0 11px;
+  }
+}
+
+@keyframes mark-swirl {
+  from {
+    translate: -1.5px 0;
+  }
+  to {
+    translate: 1.5px 0;
+  }
+}
+
+.drop-overlay .mark-liquid {
+  animation:
+    mark-fill 900ms cubic-bezier(0.22, 1, 0.36, 1) both,
+    mark-swirl 1.6s ease-in-out 900ms infinite alternate;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .vessel-fill {
     transition: none;
   }
   .pour-stream,
-  .indeterminate {
+  .indeterminate,
+  .vessel-fill[data-pouring="true"],
+  .vessel-fill[data-done="true"],
+  .pour-animate .vessel-from,
+  .pour-animate .vessel-slot,
+  .row-land,
+  .row-land .band,
+  .status-in,
+  .nudge,
+  .pop,
+  .check-draw path,
+  .drop-overlay,
+  .drop-overlay .mark-liquid {
     animation: none;
   }
 }

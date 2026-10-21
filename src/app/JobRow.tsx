@@ -1,9 +1,9 @@
-import { memo, useEffect, useState } from 'react';
+import { type CSSProperties, memo, useEffect, useState } from 'react';
 import { getFormat } from '../core/formats';
 import { zipFiles } from '../core/zip';
 import { cancelJob, type Job, markSaved, removeJob, retryJob } from '../state/jobs';
 import { describeSizeChange, formatBytes, formatDuration, plural } from './format';
-import { CloseIcon, DownloadIcon, RetryIcon } from './icons';
+import { CheckIcon, CloseIcon, DownloadIcon, RetryIcon } from './icons';
 import { saveBlob } from './save';
 
 /** Formats every browser can show in an <img>, used for input thumbnails. */
@@ -13,11 +13,16 @@ interface JobRowProps {
   job: Job;
   /** Shown instead of "Ready" for files the group's target doesn't apply to. */
   note?: string;
+  /** Position in its list, so a batch of new files lands one after another. */
+  index?: number;
 }
 
-export const JobRow = memo(function JobRow({ job, note }: JobRowProps) {
+export const JobRow = memo(function JobRow({ job, note, index = 0 }: JobRowProps) {
   return (
-    <li className="grid grid-cols-[2.75rem_minmax(0,1fr)_auto] items-center gap-x-4 gap-y-1 py-3.5 sm:grid-cols-[2.75rem_minmax(0,1fr)_minmax(13rem,auto)_auto]">
+    <li
+      style={{ '--delay': `${Math.min(index, 8) * 40}ms` } as CSSProperties}
+      className="row-land grid grid-cols-[2.75rem_minmax(0,1fr)_auto] items-center gap-x-4 gap-y-1 py-3.5 sm:grid-cols-[2.75rem_minmax(0,1fr)_minmax(13rem,auto)_auto]"
+    >
       <Thumbnail job={job} />
       <div className="min-w-0">
         <p className="truncate font-[540]" title={job.file.name}>
@@ -41,6 +46,7 @@ function Thumbnail({ job }: { job: Job }) {
   const inputUrl = useObjectUrl(job.from && PREVIEWABLE.has(job.from) && !outputIsImage ? job.file : null);
   const src = outputIsImage ? firstOutput.url : inputUrl;
   const category = job.from ? getFormat(job.from).category : null;
+  const failed = job.status === 'failed';
   const [broken, setBroken] = useState<string | null>(null);
 
   if (src && broken !== src) {
@@ -61,7 +67,11 @@ function Thumbnail({ job }: { job: Job }) {
       aria-hidden="true"
       className="relative grid size-11 place-items-center overflow-hidden rounded-lg border border-rule bg-sunk text-[0.6875rem] font-[700] tracking-[0.02em] text-ink-2 [font-variation-settings:'wdth'_80]"
     >
-      {category && <span className="absolute inset-x-0 bottom-0 h-1 bg-liquid" />}
+      {category && (
+        <span
+          className={`band absolute inset-x-0 bottom-0 h-1 transition-colors duration-300 ${failed ? 'bg-danger' : 'bg-liquid'}`}
+        />
+      )}
       {job.from ? getFormat(job.from).label : '?'}
     </div>
   );
@@ -89,7 +99,7 @@ function Status({ job, note }: { job: Job; note?: string }) {
     case 'detecting':
       return <p className="text-ink-3">Reading…</p>;
     case 'unsupported':
-      return <p className="text-ink-2">Decant can't convert this kind of file.</p>;
+      return <p className="text-ink-2">Decant can’t convert this kind of file.</p>;
     case 'ready':
       return <p className="text-ink-3">Ready</p>;
     case 'queued':
@@ -98,7 +108,7 @@ function Status({ job, note }: { job: Job; note?: string }) {
       return <Progress job={job} />;
     case 'failed':
       return (
-        <p className="text-danger [text-wrap:pretty]" role="alert">
+        <p className="nudge text-danger [text-wrap:pretty]" role="alert">
           {job.error}
         </p>
       );
@@ -107,14 +117,14 @@ function Status({ job, note }: { job: Job; note?: string }) {
       const change = job.outputs.length === 1 ? describeSizeChange(job.file.size, total) : null;
       const took = job.startedAt && job.finishedAt ? formatDuration(job.finishedAt - job.startedAt) : null;
       return (
-        <div className="tabular leading-snug">
+        <div className="status-in tabular leading-snug">
           <p>
             {job.outputs.length > 1 ? `${plural(job.outputs.length, 'file')}, ` : ''}
             {formatBytes(total)}
             {change && <span className="text-ink-3"> ({change})</span>}
           </p>
           <p className="text-[0.8125rem] text-ink-3">
-            {job.stale ? 'Settings changed since' : took ? `Converted in ${took}` : 'Converted'}
+            {job.stale ? 'Made with earlier settings' : took ? `Converted in ${took}` : 'Converted'}
           </p>
         </div>
       );
@@ -124,6 +134,7 @@ function Status({ job, note }: { job: Job; note?: string }) {
 
 function Progress({ job }: { job: Job }) {
   const percent = job.progress === null ? null : Math.round(job.progress * 100);
+  const left = timeLeft(job);
   return (
     <div className="space-y-1.5">
       <div
@@ -143,12 +154,30 @@ function Progress({ job }: { job: Job }) {
           />
         )}
       </div>
-      <p className="text-[0.8125rem] text-ink-2 tabular">
-        {job.stage ?? 'Converting'}
-        {percent !== null && percent > 0 && percent < 100 ? ` ${percent}%` : ''}
+      {/* One line, always: a status that wrapped mid-conversion would shift the rows below. */}
+      <p className="flex justify-between gap-3 text-[0.8125rem] text-ink-2 tabular">
+        <span className="truncate">
+          {job.stage ?? 'Converting'}
+          {left && <span className="text-ink-3">, {left}</span>}
+        </span>{' '}
+        {percent !== null && percent > 0 && percent < 100 && <span>{percent}%</span>}
       </p>
     </div>
   );
+}
+
+/** "about 4 min left", once a conversion has run long enough for the estimate to mean something. */
+function timeLeft(job: Job): string | null {
+  const progress = job.progress;
+  if (progress === null || progress < 0.02 || progress >= 1 || job.startedAt === undefined) return null;
+  const elapsed = performance.now() - job.startedAt;
+  if (elapsed < 4000) return null;
+  const remaining = (elapsed * (1 - progress)) / progress;
+  if (remaining < 15_000) return 'a few seconds left';
+  if (remaining < 60_000) return 'under a minute left';
+  const minutes = Math.round(remaining / 60_000);
+  if (minutes < 90) return `about ${minutes}\u00a0min left`;
+  return `about ${Math.round(minutes / 60)}\u00a0h left`;
 }
 
 const iconButton =
@@ -176,6 +205,8 @@ function RowActions({ job }: { job: Job }) {
     }
   };
 
+  const single = job.outputs.length === 1 ? job.outputs[0] : undefined;
+  const saved = job.outputs.length > 0 && job.outputs.every((output) => output.saved);
   return (
     <>
       {job.status === 'done' && (
@@ -183,12 +214,17 @@ function RowActions({ job }: { job: Job }) {
           type="button"
           onClick={download}
           disabled={zipping}
-          className="flex h-9 items-center gap-2 rounded-lg border border-rule-strong px-3 font-[560] text-ink transition-colors hover:border-ink"
-          title={job.outputs.length === 1 ? job.outputs[0]?.name : `Download ${job.outputs.length} files as a ZIP`}
+          className={`pop flex h-9 items-center gap-2 rounded-lg border px-3 font-[560] transition-colors ${
+            saved
+              ? 'border-rule text-ink-2 hover:border-ink-3 hover:text-ink'
+              : 'border-rule-strong text-ink hover:border-ink'
+          }`}
+          title={single ? single.name : `Save all ${job.outputs.length} files as a ZIP`}
         >
-          <DownloadIcon />
-          <span className="hidden sm:inline">{job.outputs.length > 1 ? 'ZIP' : 'Save'}</span>
-          <span className="sr-only"> {job.outputs.length === 1 ? job.outputs[0]?.name : 'all files as a ZIP'}</span>
+          {saved ? <CheckIcon className="check-draw" /> : <DownloadIcon />}
+          {/* Hidden visually on phones, but always part of the button's name. */}
+          <span className="max-sm:sr-only">{saved ? 'Saved' : 'Save'}</span>
+          <span className="sr-only"> {single ? single.name : `all ${job.outputs.length} files as a ZIP`}</span>
         </button>
       )}
       {job.status === 'failed' && (

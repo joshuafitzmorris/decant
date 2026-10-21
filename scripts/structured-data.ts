@@ -1,4 +1,4 @@
-import { getFormat } from '../src/core/formats';
+import { displayName } from '../src/core/formats';
 import {
   conversionCount,
   type Faq,
@@ -39,7 +39,7 @@ export function structuredData(route: Route, siteUrl: string): object[] {
     author: AUTHOR,
     featureList: [
       'Converts files on your device; nothing is uploaded',
-      'No ads, no tracking, no sign-up',
+      'No ads, tracking or accounts',
       'No file size limit beyond your device',
       'Works offline once loaded',
       'Images: HEIC, WebP, AVIF, PNG, JPG, SVG and more',
@@ -67,8 +67,8 @@ export function structuredData(route: Route, siteUrl: string): object[] {
   });
 
   if (route.kind === 'pair') {
-    const s = getFormat(route.from).label;
-    const t = getFormat(route.to).label;
+    const s = displayName(route.from);
+    const t = displayName(route.to);
     return [
       app,
       {
@@ -90,7 +90,7 @@ export function structuredData(route: Route, siteUrl: string): object[] {
     ];
   }
   if (route.kind === 'format') {
-    const s = getFormat(route.format).label;
+    const s = displayName(route.format);
     return [
       app,
       {

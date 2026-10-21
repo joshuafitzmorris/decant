@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { type FormatId, getFormat } from '../core/formats';
+import { displayName, type FormatId } from '../core/formats';
 import { FORMAT_PAGES, formatSlug, LANDING_PAIRS, landingSlug } from '../core/landing';
 import { targetsFor } from '../core/routes';
 import { type Faq, FORMAT_ABOUT, formatFaq, pairAbout, pairFaq, pairSteps, type Route, siteFaq } from '../core/seo';
@@ -16,19 +16,26 @@ const href = (slug: string) => `${import.meta.env.BASE_URL}${slug}/`;
 export function Guide({ route }: { route: Route }) {
   if (route.kind === 'pair') return <PairGuide from={route.from} to={route.to} />;
   if (route.kind === 'format') return <FormatGuide format={route.format} />;
+  // Split across both columns: what it costs and where files go, then what it handles and who makes it.
+  const faqs = siteFaq();
+  const half = Math.ceil(faqs.length / 2);
   return (
     <Section label="Questions">
-      <div className="max-w-[60ch]">
+      <div>
         <h2 className={heading}>Questions</h2>
-        <Questions faqs={siteFaq()} />
+        <Questions faqs={faqs.slice(0, half)} />
+      </div>
+      {/* Drops by the heading's height so both columns start level. */}
+      <div className="md:pt-[calc(1.35rem*1.5)]">
+        <Questions faqs={faqs.slice(half)} />
       </div>
     </Section>
   );
 }
 
 function PairGuide({ from, to }: { from: FormatId; to: FormatId }) {
-  const s = getFormat(from).label;
-  const t = getFormat(to).label;
+  const s = displayName(from);
+  const t = displayName(to);
   const others = targetsFor(from).filter((target) => target !== to && landing.has(`${from}>${target}`));
   return (
     <Section label={`How to convert ${s} to ${t}`}>
@@ -58,7 +65,7 @@ function PairGuide({ from, to }: { from: FormatId; to: FormatId }) {
           {others.map((target) => (
             <li key={target}>
               <a href={href(landingSlug(from, target))} className={inlineLink}>
-                {s} to {getFormat(target).label}
+                {s} to {displayName(target)}
               </a>
             </li>
           ))}
@@ -74,7 +81,7 @@ function PairGuide({ from, to }: { from: FormatId; to: FormatId }) {
 }
 
 function FormatGuide({ format }: { format: FormatId }) {
-  const s = getFormat(format).label;
+  const s = displayName(format);
   // Formats this one is often converted from, for people who arrived with the other kind of file.
   const sources = FORMAT_PAGES.filter((from) => from !== format && landing.has(`${from}>${format}`));
   return (
@@ -82,28 +89,28 @@ function FormatGuide({ format }: { format: FormatId }) {
       <div className="space-y-4 text-ink-2 [text-wrap:pretty]">
         <h2 className={heading}>What are {s} files?</h2>
         <p>{FORMAT_ABOUT[format]}</p>
-        <h2 className={`${heading} pt-6`}>Convert {s} to</h2>
+        <h2 className={`${heading} pt-6`}>{s} to other formats</h2>
         <ul className="flex flex-wrap gap-x-4 gap-y-1.5">
           {targetsFor(format).map((target) => (
             <li key={target}>
               {landing.has(`${format}>${target}`) ? (
                 <a href={href(landingSlug(format, target))} className={inlineLink}>
-                  {getFormat(target).label}
+                  {displayName(target)}
                 </a>
               ) : (
-                getFormat(target).label
+                displayName(target)
               )}
             </li>
           ))}
         </ul>
         {sources.length > 0 && (
           <>
-            <h2 className={`${heading} pt-6`}>Convert to {s}</h2>
+            <h2 className={`${heading} pt-6`}>Other formats to {s}</h2>
             <ul className="flex flex-wrap gap-x-4 gap-y-1.5">
               {sources.map((from) => (
                 <li key={from}>
                   <a href={href(landingSlug(from, format))} className={inlineLink}>
-                    {getFormat(from).label} to {s}
+                    {displayName(from)} to {s}
                   </a>
                 </li>
               ))}

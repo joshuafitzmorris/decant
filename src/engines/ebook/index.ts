@@ -1,4 +1,4 @@
-import { getFormat } from '../../core/formats';
+import { displayName } from '../../core/formats';
 import { abortError, ConversionError, type ConvertedFile, type ConvertRequest } from '../types';
 import type { Book } from './book';
 
@@ -31,7 +31,7 @@ export async function convert(request: ConvertRequest): Promise<ConvertedFile[]>
   const book = await readBook(file, from, fallbackTitle, signal, onProgress);
   if (!book.title) book.title = fallbackTitle;
   if (signal.aborted) throw abortError();
-  onProgress(null, `Writing ${getFormat(to).label}`);
+  onProgress(null, `Writing ${displayName(to)}`);
 
   const { convertImages } = await import('./images');
   switch (to) {
@@ -69,7 +69,7 @@ export async function convert(request: ConvertRequest): Promise<ConvertedFile[]>
       return [output(bookToHtml(ready), 'text/html;charset=utf-8')];
     }
     default:
-      throw new ConversionError(`Decant can't write ${to.toUpperCase()} from this book yet.`);
+      throw new ConversionError(`Decant can’t make ${displayName(to)} from this book yet.`);
   }
 }
 
@@ -96,7 +96,7 @@ async function readBook(
     case 'txt':
       return (await import('./from-document')).documentToBook(file, from, fallbackTitle);
     default:
-      throw new ConversionError(`Decant can't read ${from.toUpperCase()} as a book.`);
+      throw new ConversionError(`Decant can’t read ${from.toUpperCase()} as a book.`);
   }
 }
 

@@ -17,6 +17,13 @@ export const DownloadIcon = (props: SVGProps<SVGSVGElement>) => (
   </svg>
 );
 
+/** Drawn in once when it appears (see .check-draw). */
+export const CheckIcon = (props: SVGProps<SVGSVGElement>) => (
+  <svg aria-hidden="true" {...base} {...props}>
+    <path d="M3.5 8.5l3 3 6-7" />
+  </svg>
+);
+
 export const CloseIcon = (props: SVGProps<SVGSVGElement>) => (
   <svg aria-hidden="true" {...base} {...props}>
     <path d="M4 4l8 8M12 4l-8 8" />
@@ -53,7 +60,7 @@ export function Mark(props: SVGProps<SVGSVGElement>) {
       </defs>
       <g clipPath={`url(#${clip})`}>
         <rect width="32" height="32" fill="var(--ink)" opacity="0.14" />
-        <path d="M0 19.5c4-1.6 8-1.6 12 0s8 1.6 12 0 6-1.2 8-.6V32H0z" fill="var(--ink)" />
+        <path className="mark-liquid" d="M0 19.5c4-1.6 8-1.6 12 0s8 1.6 12 0 6-1.2 8-.6V32H0z" fill="var(--ink)" />
       </g>
       <path d={VESSEL} fill="none" stroke="var(--ink)" strokeWidth="2" strokeLinejoin="round" />
     </svg>

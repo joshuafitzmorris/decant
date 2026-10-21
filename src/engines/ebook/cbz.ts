@@ -13,7 +13,7 @@ export async function cbzToPdf({ file, signal, onProgress }: ConvertRequest): Pr
     });
   } catch {
     throw new ConversionError(
-      "This comic archive couldn't be opened. It may be damaged, or be a RAR file renamed to CBZ.",
+      'This comic archive couldn’t be opened. It may be damaged, or be a RAR file renamed to CBZ.',
     );
   }
   // "page 2" sorts before "page 10", the way people number files.

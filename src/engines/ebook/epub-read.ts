@@ -20,7 +20,7 @@ export async function readEpub(file: Blob): Promise<Book> {
   try {
     files = unzipSync(new Uint8Array(await file.arrayBuffer()));
   } catch {
-    throw new ConversionError("This EPUB couldn't be opened. It may be damaged.");
+    throw new ConversionError('This EPUB couldn’t be opened. It may be damaged.');
   }
   const text = (path: string) => {
     const data = files[path];
@@ -40,7 +40,7 @@ export async function readEpub(file: Blob): Promise<Book> {
     container?.getElementsByTagName('rootfile')[0]?.getAttribute('full-path') ??
     Object.keys(files).find((name) => name.toLowerCase().endsWith('.opf'));
   const opf = opfPath ? xml(opfPath) : null;
-  if (!opfPath || !opf) throw new ConversionError("This EPUB's package file is missing or damaged.");
+  if (!opfPath || !opf) throw new ConversionError('This EPUB’s package file is missing or damaged.');
 
   // Manifest and spine
   const items = new Map<string, Item>();
@@ -159,7 +159,7 @@ export async function readEpub(file: Blob): Promise<Book> {
 /** Adobe and Readium DRM encrypt the chapters themselves; font obfuscation alone is fine. */
 function checkDrm(files: Record<string, Uint8Array>, encryption: string | null) {
   const locked = new ConversionError(
-    "This book is protected with DRM, so it can't be converted. Only DRM-free books can be converted.",
+    'This book is protected with DRM, so Decant can’t convert it. Books without DRM, such as those from Project Gutenberg, convert normally.',
     'drm',
   );
   if (files['META-INF/rights.xml'] || files['META-INF/license.lcpl']) throw locked;

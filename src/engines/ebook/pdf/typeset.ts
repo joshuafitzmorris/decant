@@ -259,7 +259,7 @@ function checkCoverage(print: PrintBook, face: Face) {
   }
   if (missing > letters * 0.02) {
     throw new ConversionError(
-      "This book uses characters the PDF font can't show, such as Chinese or Arabic. Convert it to EPUB or HTML instead.",
+      'This book uses characters the PDF font can’t show, such as Chinese or Arabic. Convert it to EPUB or HTML instead.',
       'unsupported-script',
     );
   }

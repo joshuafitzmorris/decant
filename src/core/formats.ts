@@ -3,8 +3,10 @@ export type Category = 'image' | 'audio' | 'video' | 'document' | 'ebook' | 'dat
 export interface Format {
   /** Stable identifier, also the default output extension. */
   id: string;
-  /** Short display label, e.g. "JPG". */
+  /** Short label for buttons and lists, e.g. "JPG" or "WEBP". */
   label: string;
+  /** How the format is written in a sentence, when that differs from the label: "WebP", not "WEBP". */
+  display?: string;
   /** Human name, e.g. "JPEG image". */
   name: string;
   /** Extensions recognised on input. The first is used for output files. */
@@ -26,7 +28,15 @@ export const FORMATS = define([
     category: 'image',
   },
   { id: 'png', label: 'PNG', name: 'PNG image', exts: ['png', 'apng'], mime: 'image/png', category: 'image' },
-  { id: 'webp', label: 'WEBP', name: 'WebP image', exts: ['webp'], mime: 'image/webp', category: 'image' },
+  {
+    id: 'webp',
+    label: 'WEBP',
+    display: 'WebP',
+    name: 'WebP image',
+    exts: ['webp'],
+    mime: 'image/webp',
+    category: 'image',
+  },
   { id: 'avif', label: 'AVIF', name: 'AVIF image', exts: ['avif'], mime: 'image/avif', category: 'image' },
   {
     id: 'heic',
@@ -50,7 +60,15 @@ export const FORMATS = define([
   { id: 'm4a', label: 'M4A', name: 'M4A audio', exts: ['m4a', 'm4b', 'm4r'], mime: 'audio/mp4', category: 'audio' },
   { id: 'aac', label: 'AAC', name: 'AAC audio', exts: ['aac', 'adts'], mime: 'audio/aac', category: 'audio' },
   { id: 'ogg', label: 'OGG', name: 'Ogg audio', exts: ['ogg', 'oga'], mime: 'audio/ogg', category: 'audio' },
-  { id: 'opus', label: 'OPUS', name: 'Opus audio', exts: ['opus'], mime: 'audio/ogg', category: 'audio' },
+  {
+    id: 'opus',
+    label: 'OPUS',
+    display: 'Opus',
+    name: 'Opus audio',
+    exts: ['opus'],
+    mime: 'audio/ogg',
+    category: 'audio',
+  },
   {
     id: 'aiff',
     label: 'AIFF',
@@ -64,7 +82,15 @@ export const FORMATS = define([
   // Video
   { id: 'mp4', label: 'MP4', name: 'MP4 video', exts: ['mp4', 'm4v'], mime: 'video/mp4', category: 'video' },
   { id: 'mov', label: 'MOV', name: 'QuickTime video', exts: ['mov', 'qt'], mime: 'video/quicktime', category: 'video' },
-  { id: 'webm', label: 'WEBM', name: 'WebM video', exts: ['webm'], mime: 'video/webm', category: 'video' },
+  {
+    id: 'webm',
+    label: 'WEBM',
+    display: 'WebM',
+    name: 'WebM video',
+    exts: ['webm'],
+    mime: 'video/webm',
+    category: 'video',
+  },
   {
     id: 'mkv',
     label: 'MKV',
@@ -114,6 +140,7 @@ export const FORMATS = define([
   {
     id: 'md',
     label: 'MD',
+    display: 'Markdown',
     name: 'Markdown',
     exts: ['md', 'markdown', 'mdown', 'mkd'],
     mime: 'text/markdown',
@@ -216,6 +243,12 @@ export function getFormat(id: FormatId): Format {
   const format = byId.get(id);
   if (!format) throw new Error(`Unknown format: ${id}`);
   return format;
+}
+
+/** The format's name as it reads in running text: "WebP", "Markdown", "JPG". */
+export function displayName(id: FormatId): string {
+  const format = getFormat(id);
+  return format.display ?? format.label;
 }
 
 export function isFormatId(value: string): value is FormatId {

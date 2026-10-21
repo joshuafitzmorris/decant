@@ -1,4 +1,4 @@
-import { type FormatId, getFormat } from '../../core/formats';
+import { displayName, type FormatId } from '../../core/formats';
 import { ConversionError } from '../types';
 import { decodeIcoDib, readIcoDirectory } from './codecs';
 
@@ -46,9 +46,8 @@ export async function decodeImage(input: Blob | ImageBitmap, from: FormatId): Pr
   } catch (error) {
     if (error instanceof ConversionError) throw error;
   }
-  const label = getFormat(from).label;
   throw new ConversionError(
-    `This ${label} file couldn't be read. It may be damaged or use a variant Decant doesn't support.`,
+    `This ${displayName(from)} file couldn’t be read. It may be damaged, or use a variant Decant doesn’t support.`,
   );
 }
 
@@ -110,5 +109,5 @@ async function decodeIco(blob: Blob): Promise<Decoded> {
       // Try the next size.
     }
   }
-  throw new ConversionError("This icon uses an image format Decant can't read.");
+  throw new ConversionError('This icon uses an image format Decant can’t read.');
 }

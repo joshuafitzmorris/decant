@@ -56,7 +56,7 @@ export async function pdfToBook(
     }
     if (!pages.some((lines) => lines.length)) {
       throw new ConversionError(
-        'This PDF has no selectable text. It is probably a scan, so there is no text to turn into an ebook.',
+        'This PDF has no selectable text, probably because it’s a scan, so there’s nothing to make an ebook from. Converting it to CBZ keeps the pages as pictures.',
         'no-text',
       );
     }

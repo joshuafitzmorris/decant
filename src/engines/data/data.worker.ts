@@ -88,7 +88,7 @@ async function readWorkbook(file: File, from: FormatId, literal: boolean): Promi
         'password',
       );
     }
-    throw new ConversionError("This spreadsheet couldn't be read. It may be damaged.", 'invalid');
+    throw new ConversionError('This spreadsheet couldn’t be read. It may be damaged.', 'invalid');
   }
 }
 
@@ -128,7 +128,7 @@ function writeWorkbook(book: XLSX.WorkBook, to: FormatId, literal: boolean): Dat
       return [{ blob: new Blob([`${JSON.stringify(value, null, 2)}\n`], { type: MIME.json }) }];
     }
     default:
-      throw new ConversionError(`Decant can't write ${to.toUpperCase()} from a spreadsheet.`);
+      throw new ConversionError(`Decant can’t make ${to.toUpperCase()} from a spreadsheet.`);
   }
 }
 

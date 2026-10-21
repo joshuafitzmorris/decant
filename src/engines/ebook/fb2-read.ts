@@ -9,12 +9,12 @@ export async function readFb2(file: Blob): Promise<Book> {
   if (bytes[0] === 0x50 && bytes[1] === 0x4b) {
     const { unzipSync } = await import('fflate');
     const entry = Object.entries(unzipSync(bytes)).find(([name]) => name.toLowerCase().endsWith('.fb2'));
-    if (!entry) throw new ConversionError("This archive doesn't contain a FictionBook file.");
+    if (!entry) throw new ConversionError('This archive doesn’t contain a FictionBook file.');
     bytes = entry[1];
   }
   const doc = new DOMParser().parseFromString(decodeXml(bytes), 'application/xml');
   if (doc.getElementsByTagName('parsererror').length || doc.documentElement.localName !== 'FictionBook') {
-    throw new ConversionError("This FB2 file couldn't be read. It may be damaged.");
+    throw new ConversionError('This FB2 file couldn’t be read. It may be damaged.');
   }
   const root = doc.documentElement;
 

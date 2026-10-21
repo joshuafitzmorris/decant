@@ -1,4 +1,4 @@
-import type { FormatId } from '../../core/formats';
+import { displayName, type FormatId } from '../../core/formats';
 import type { Options } from '../../core/options';
 import { ConversionError } from '../types';
 import { buildIco, encodeBmp, fitWithin, hasTransparency } from './codecs';
@@ -77,7 +77,7 @@ export async function encodeImage(source: Decoded, to: FormatId, settings: Encod
       return blobOf(UTIF.encodeImage(new Uint8Array(image.data.buffer), image.width, image.height), 'image/tiff');
     }
     default:
-      throw new ConversionError(`Decant can't write ${to.toUpperCase()} images.`);
+      throw new ConversionError(`Decant can’t make ${displayName(to)} images.`);
   }
 }
 
@@ -119,7 +119,7 @@ export async function drawScaled(
 
 function context2d(canvas: OffscreenCanvas): OffscreenCanvasRenderingContext2D {
   const ctx = canvas.getContext('2d');
-  if (!ctx) throw new ConversionError('This browser could not allocate an image canvas. The image may be too large.');
+  if (!ctx) throw new ConversionError('The browser couldn’t make room for an image this large. Pick a smaller size.');
   return ctx;
 }
 

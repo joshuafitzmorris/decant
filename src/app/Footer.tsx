@@ -1,7 +1,7 @@
-import { CATEGORY_NAMES, type Category, FORMATS, type FormatId, getFormat } from '../core/formats';
+import { CATEGORY_NAMES, type Category, displayName, FORMATS, type FormatId, getFormat } from '../core/formats';
 import { formatSlug, LANDING_PAIRS, landingSlug } from '../core/landing';
 import { readableFormats } from '../core/routes';
-import { REPO_URL, SUPPORT_URL } from './Header';
+import { AUTHOR_GITHUB_URL, AUTHOR_URL, REPO_URL, SUPPORT_URL } from './Header';
 
 const CATEGORIES: Category[] = ['image', 'audio', 'video', 'document', 'ebook', 'data'];
 
@@ -28,33 +28,33 @@ export function Footer() {
         <div className="max-w-[56ch] space-y-4 text-ink-2 [text-wrap:pretty]">
           <h2 className="text-[1.35rem] font-[700] text-ink [font-variation-settings:'wdth'_90]">How it works</h2>
           <p>
-            Decant does all of its work inside this browser tab. Your files are read from your disk, converted with
-            WebAssembly and your device's own media encoders, and saved straight back. There is no server to upload to,
-            and the page's security policy blocks connections to any other site.
+            Everything happens inside this browser tab. Decant reads your files from disk, converts them with
+            WebAssembly and your device’s own media encoders, and hands the results straight back. There’s no server to
+            upload to, and the page’s security policy blocks connections to any other site.
           </p>
           <p>
-            Video and audio use hardware-accelerated WebCodecs where your browser supports them, so a phone video
-            usually converts faster than it plays. Formats that need it fall back to a copy of ffmpeg that is downloaded
-            once and then cached.
+            Video and audio go through WebCodecs, which uses your device’s media hardware where the browser supports it,
+            so a phone video usually converts faster than it plays. Older formats fall back to a copy of ffmpeg that
+            downloads the first time it’s needed and then stays cached.
           </p>
-          <p>Converters you've used keep working offline: the page and its code stay in your browser's cache.</p>
+          <p>Once you’ve used a converter, it keeps working offline.</p>
 
           <h2 className="pt-6 text-[1.35rem] font-[700] text-ink [font-variation-settings:'wdth'_90]">
             No ads, no tracking
           </h2>
           <p>
-            There are no ads, no analytics, no cookies and no accounts. Decant doesn't know who you are or what you
-            convert, because your files never leave your device.
+            Decant has no analytics, cookies or accounts. It doesn’t know who you are or what you convert, because your
+            files never leave your device.
           </p>
           <p>
-            It's free and open source under the MIT licence:{' '}
+            It’s open source under the MIT licence, so you can check all of this against{' '}
             <a href={REPO_URL} className={inlineLink}>
-              read the code on GitHub
+              the code on GitHub
             </a>
             .
           </p>
           <p>
-            How does it make money? It doesn't. If it saved you some hassle,{' '}
+            How does it make money? It doesn’t. If it saved you some hassle,{' '}
             <a href={SUPPORT_URL} className={inlineLink} rel="noopener">
               buy me a coffee
             </a>
@@ -90,7 +90,7 @@ export function Footer() {
                       title={`${f.name} converter`}
                       className="hover:text-ink hover:underline hover:underline-offset-4"
                     >
-                      {f.label}
+                      {displayName(f.id as FormatId)}
                     </a>
                   ))}
                 </dd>
@@ -112,7 +112,7 @@ export function Footer() {
                           href={`${import.meta.env.BASE_URL}${landingSlug(from, to)}/`}
                           className="underline decoration-rule underline-offset-4 hover:text-ink hover:decoration-ink-3"
                         >
-                          {getFormat(from).label} to {getFormat(to).label}
+                          {displayName(from)} to {displayName(to)}
                         </a>
                       </li>
                     ))}
@@ -122,6 +122,18 @@ export function Footer() {
             })}
           </div>
         </div>
+      </div>
+
+      <div className="mt-16 flex flex-wrap items-baseline justify-between gap-x-6 gap-y-2 border-t border-rule pt-6 text-[0.8125rem] text-ink-3">
+        <p>
+          Made in Vancouver by{' '}
+          <a href={AUTHOR_URL} rel="author" className="font-[600] text-ink-2 hover:text-ink">
+            Joshua Fitz-Morris
+          </a>
+        </p>
+        <a href={AUTHOR_GITHUB_URL} rel="noopener" aria-label="Joshua Fitz-Morris on GitHub" className="hover:text-ink">
+          GitHub
+        </a>
       </div>
     </footer>
   );

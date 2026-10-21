@@ -1,3 +1,4 @@
+import { displayName } from '../../core/formats';
 import { readText } from '../../core/text';
 import { abortError, ConversionError, type ConvertedFile, type ConvertRequest } from '../types';
 import { htmlDocument, htmlToText } from './html';
@@ -20,7 +21,7 @@ export async function convert({ file, from, to, signal, onProgress }: ConvertReq
     case 'txt':
       return [text(from === 'txt' ? await readText(file) : htmlToText(html), 'text/plain')];
     default:
-      throw new ConversionError(`Decant can't write ${to.toUpperCase()} from this file yet.`);
+      throw new ConversionError(`Decant can’t make ${displayName(to)} from this file yet.`);
   }
 }
 
@@ -32,7 +33,7 @@ export async function toHtml(file: File, from: string, title: string): Promise<s
       const result = await mammoth
         .convertToHtml({ arrayBuffer: await file.arrayBuffer() }, { includeDefaultStyleMap: true })
         .catch(() => {
-          throw new ConversionError("This Word document couldn't be read. It may be damaged or password-protected.");
+          throw new ConversionError('This Word document couldn’t be read. It may be damaged or password-protected.');
         });
       return result.value;
     }
@@ -50,7 +51,7 @@ export async function toHtml(file: File, from: string, title: string): Promise<s
         .join('\n');
     }
     default:
-      throw new ConversionError(`Decant can't read ${title} as a document.`);
+      throw new ConversionError(`Decant can’t read ${title} as a document.`);
   }
 }
 

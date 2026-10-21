@@ -76,7 +76,7 @@ async function transcode(
   progress: ProgressFn,
 ): Promise<MediaResult> {
   const spec = OUTPUT_SPECS[to];
-  if (!spec) throw new ConversionError(`Decant can't write ${to.toUpperCase()} files yet.`);
+  if (!spec) throw new ConversionError(`Decant can’t make ${to.toUpperCase()} files yet.`);
   if (spec.audioCodec) await ensureAudioEncoder(spec.audioCodec);
 
   const trim = await resolveTrim(input, options);
@@ -131,7 +131,7 @@ async function convertInto(
   if (!conversion.isValid) {
     throw spec.audioOnly
       ? new ConversionError('This file has no audio to extract.', 'no-audio')
-      : new ConversionError("This file doesn't contain any audio or video that can be converted.", 'empty');
+      : new ConversionError('This file doesn’t contain any audio or video that can be converted.', 'empty');
   }
 
   conversion.onProgress = (value) => progress(value, 'Converting');
@@ -210,7 +210,7 @@ function outputFormat(to: FormatId, streaming: boolean): OutputFormat {
     case 'opus':
       return new OggOutputFormat();
     default:
-      throw new ConversionError(`Decant can't write ${to.toUpperCase()} files yet.`);
+      throw new ConversionError(`Decant can’t make ${to.toUpperCase()} files yet.`);
   }
 }
 
@@ -288,7 +288,7 @@ async function createSink(inputSize: number, diskPrefix: string): Promise<Sink> 
     target,
     streaming: false,
     finish: async (mime) => {
-      if (!target.buffer) throw new ConversionError('The converter finished without producing a file.');
+      if (!target.buffer) throw new ConversionError('The converter finished without making a file. Try again.');
       return new Blob([target.buffer], { type: mime });
     },
     discard: async () => {},
@@ -364,7 +364,7 @@ async function videoToGif(input: Input, options: Options, progress: ProgressFn):
   if (timestamps.length > MAX_GIF_FRAMES) {
     const maxSeconds = Math.floor(MAX_GIF_FRAMES / fps);
     throw new ConversionError(
-      `That's too long for a GIF. Set a start and end time to keep it under ${maxSeconds} seconds at ${fps} fps.`,
+      `That’s too long for a GIF. Set a start and end time to keep it under ${maxSeconds}\u00a0seconds at ${fps}\u00a0fps.`,
       'too-long',
     );
   }
@@ -374,6 +374,8 @@ async function videoToGif(input: Input, options: Options, progress: ProgressFn):
   const delay = Math.round(1000 / fps);
   const sink = new CanvasSink(track, { width, height, fit: 'fill', poolSize: 1 });
   let done = 0;
+  // Reported before the first frame too, so a decoder that never returns one counts as stalled.
+  progress(0, 'Making GIF');
   for await (const frame of sink.canvasesAtTimestamps(timestamps)) {
     if (frame) {
       const ctx = frame.canvas.getContext('2d') as OffscreenCanvasRenderingContext2D;
@@ -392,7 +394,7 @@ async function videoToGif(input: Input, options: Options, progress: ProgressFn):
 // GIF to video
 
 async function gifToVideo({ file, to }: MediaTask, progress: ProgressFn): Promise<Blob> {
-  if (to !== 'mp4' && to !== 'webm') throw new ConversionError(`Decant can't turn GIFs into ${to.toUpperCase()}.`);
+  if (to !== 'mp4' && to !== 'webm') throw new ConversionError(`Decant can’t turn GIFs into ${to.toUpperCase()}.`);
   if (typeof ImageDecoder === 'undefined' || !(await ImageDecoder.isTypeSupported('image/gif'))) {
     throw fallback('ImageDecoder unavailable');
   }
@@ -425,6 +427,7 @@ async function gifToVideo({ file, to }: MediaTask, progress: ProgressFn): Promis
     await output.start();
 
     let timestamp = 0;
+    progress(0, 'Encoding video');
     for (let i = 0; i < frameCount; i++) {
       const { image } = await decoder.decode({ frameIndex: i });
       // Browsers play GIF delays under 20 ms as 100 ms; match that.
@@ -440,7 +443,7 @@ async function gifToVideo({ file, to }: MediaTask, progress: ProgressFn): Promis
     }
     source.close();
     await output.finalize();
-    if (!target.buffer) throw new ConversionError('The converter finished without producing a file.');
+    if (!target.buffer) throw new ConversionError('The converter finished without making a file. Try again.');
     return new Blob([target.buffer], { type: spec.mime });
   } finally {
     decoder.close();

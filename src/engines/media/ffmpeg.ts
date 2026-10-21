@@ -42,7 +42,7 @@ function load(onProgress: ProgressFn): Promise<FFmpeg> {
 async function downloadWithProgress(url: string, onProgress: (fraction: number | null) => void): Promise<string> {
   const response = await fetch(url);
   if (!response.ok || !response.body)
-    throw new ConversionError('The video converter could not be downloaded. Check your connection and try again.');
+    throw new ConversionError('The video converter couldn’t be downloaded. Check your connection and try again.');
   const total = Number(response.headers.get('content-length')) || 0;
   const reader = response.body.getReader();
   const chunks: Uint8Array[] = [];
@@ -263,7 +263,7 @@ function outputArgs(to: string, options: Options): string[] {
         'ogg',
       ];
     default:
-      throw new ConversionError(`Decant can't write ${to.toUpperCase()} files yet.`);
+      throw new ConversionError(`Decant can’t make ${to.toUpperCase()} files yet.`);
   }
 }
 
@@ -272,6 +272,6 @@ function explain(log: string): string {
     return 'This file has no audio or video stream that can be converted.';
   }
   if (/Invalid data found/i.test(log))
-    return "This file couldn't be read. It may be damaged or not really a media file.";
-  return "This file couldn't be converted.";
+    return 'This file couldn’t be read. It may be damaged, or not really a media file.';
+  return 'Decant couldn’t convert this file. It may be damaged, or use a codec Decant can’t read.';
 }

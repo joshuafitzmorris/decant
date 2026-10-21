@@ -70,11 +70,14 @@ export async function stringifyStructured(value: unknown, format: StructuredForm
       // TOML documents are tables; a top-level list becomes an array of tables named "items".
       const table = Array.isArray(value) ? { items: value } : value;
       if (table === null || typeof table !== 'object') {
-        throw new ConversionError('TOML needs named keys at the top level, but this data is a single value.', 'shape');
+        throw new ConversionError(
+          'TOML needs named keys at the top level, but this data is a single value. Try JSON or YAML instead.',
+          'shape',
+        );
       }
       if (containsNull(table)) {
         throw new ConversionError(
-          'TOML has no way to store empty (null) values, and this data contains some.',
+          'TOML can’t store empty (null) values, and this data has some. Try JSON or YAML instead.',
           'shape',
         );
       }
